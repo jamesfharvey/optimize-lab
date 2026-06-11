@@ -325,10 +325,29 @@
               "default": "round_robin",
               "description": "How appointments pair with employees. capacity/round_robin = pairing at summon; employee_specific = pinned at booking."
             },
-            "appointment_grace_min": {
-              "type": "integer",
-              "default": 10,
-              "description": "On-time-start window: appointment must be summoned within \u00b1 this many minutes of scheduled time (Analytics '01 - Wait Time' definition)"
+            "appointment_punctuality": {
+              "type": "object",
+              "description": "Appointment punctuality promise (replaces the former symmetric grace window). All three inputs are customer-configurable.",
+              "properties": {
+                "early_summon_max_min": {
+                  "type": "integer",
+                  "default": 10,
+                  "minimum": 0,
+                  "description": "An appointment may be summoned up to this many minutes before its slot, and only once the visitor has checked in."
+                },
+                "late_ok_min": {
+                  "type": "integer",
+                  "default": 5,
+                  "minimum": 0,
+                  "description": "Promise kept: lateness (summon time minus scheduled time, floored at 0) within this is on-time. Also bounds the collision-rule exception: an overrun drop-in is permitted only if the blocked appointment still starts within this."
+                },
+                "late_acceptable_min": {
+                  "type": "integer",
+                  "default": 15,
+                  "minimum": 0,
+                  "description": "Tolerated on bad days, never the norm. Beyond this the CSAT lateness penalty grows convexly and the punctuality guardrail counts the start as unacceptable."
+                }
+              }
             },
             "appointment_distribution": {
               "type": "string",

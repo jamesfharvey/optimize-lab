@@ -13,9 +13,12 @@ Rules implemented here (spec-normative):
   - Breaks are hard: no service may START inside the (daily-shifted) break
     window; a service in progress at break start completes first, then the
     remaining window (possibly shortened, down to zero) is taken.
-  - Appointments are summoned within [scheduled - grace, ...]; summons later
-    than scheduled + grace count as late for the on-time guardrail. No-shows
-    sit on the books until their scheduled time, then drop (the office cannot
+  - Appointments check in early_summon_max_min before their slot and may be
+    summoned from check-in onward (never before — "only if checked in").
+    Lateness = max(0, summon - scheduled); lateness <= late_ok_min keeps the
+    promise, lateness <= late_acceptable_min is tolerated, beyond that the
+    start is unacceptable (punctuality stats track all three). No-shows sit
+    on the books until their scheduled time, then drop (the office cannot
     know earlier).
   - Incompletes: a started visit fails with the (prep-adjusted) service
     incomplete rate, consumes U(0.25, 0.6) x effective duration, closes
@@ -35,7 +38,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from . import policies
-from .csat import predicted_csat, visit_csat
+from .csat import appointment_csat, predicted_csat, visit_csat
 from .world import DayDraws, round5
 
 R_BREAK_END = 0
@@ -86,7 +89,11 @@ class DayMetrics:
     incompletes: float
     incomplete_min: float
     appts_shown: float
-    on_time_rate: float
+    pct_on_time: float        # lateness <= late_ok_min, over SHOWN appointments
+    pct_acceptable: float     # lateness <= late_acceptable_min, over SHOWN
+    p50_late: float           # within-day median lateness of summoned appts
+    p90_late: float
+    max_late: float
     mean_wait: float
     p90_wait: float
     mean_csat: float
@@ -97,7 +104,7 @@ class _Day:
     """Mutable per-day state shared with the policy pickers."""
     __slots__ = (
         "sc", "dur", "q", "qpos", "waiting", "arr_t", "next_appt", "focus",
-        "weights", "aging_cap", "grace", "busy", "busy_until", "on_break",
+        "weights", "aging_cap", "late_ok", "busy", "busy_until", "on_break",
         "lang_eok", "vlang", "_pred_csat_cache", "gamma",
     )
 
@@ -156,7 +163,9 @@ def run_day(sc, dist, draws: DayDraws, params: VariantParams, collect: bool = Fa
     n = draws.n
     E, S = sc.n_employees, sc.n_services
     open_m, close_m = float(sc.open_min), float(sc.close_min)
-    grace = float(sc.baseline.grace)
+    early_max = float(sc.baseline.early_summon_max)
+    late_ok = float(sc.baseline.late_ok)
+    late_acc = float(sc.baseline.late_acceptable)
     method = sc.baseline.scheduling_method
 
     # ---- interpret the day's draws under this variant ----
@@ -187,7 +196,7 @@ def run_day(sc, dist, draws: DayDraws, params: VariantParams, collect: bool = Fa
     day.focus = policies.compute_focus(sc, draws.form) if params.matching else None
     day.weights = sc.weights
     day.aging_cap = float(sc.aging_cap)
-    day.grace = grace
+    day.late_ok = late_ok
     day.busy = [False] * E
     day.busy_until = [0.0] * E
     day.on_break = [False] * E
@@ -257,9 +266,10 @@ def run_day(sc, dist, draws: DayDraws, params: VariantParams, collect: bool = Fa
     qsum = [0.0]
 
     waits, csats = [], []
+    lateness = []        # summon lateness of every summoned appointment
     counters = {
         "served": 0, "turned_away": 0, "abandoned": 0, "incompletes": 0,
-        "incomplete_min": 0.0, "appts_shown": 0, "on_time": 0,
+        "incomplete_min": 0.0, "appts_shown": 0,
     }
     last_completion = [open_m]
     closed = [False]
@@ -287,7 +297,8 @@ def run_day(sc, dist, draws: DayDraws, params: VariantParams, collect: bool = Fa
             if no_show[v]:
                 push(float(sched[v]), R_NOSHOW, v)
             else:
-                push(max(open_m, float(sched[v]) - grace), R_APPT_ARR, v)
+                # check-in: summonable from here on, never before
+                push(max(open_m, float(sched[v]) - early_max), R_APPT_ARR, v)
         else:
             push(float(draws.arrival[v]), R_WALK_ARR, v)
 
@@ -320,15 +331,13 @@ def run_day(sc, dist, draws: DayDraws, params: VariantParams, collect: bool = Fa
             due.remove(v)
             pending.pop(v, None)
             res_dirty[0] = True
-            wait = max(0.0, t - float(sched[v]))
-            prom = grace
-            if t <= float(sched[v]) + grace + EPS:
-                counters["on_time"] += 1
+            wait = max(0.0, t - float(sched[v]))   # = summon lateness
+            lateness.append(wait)
+            promised[v] = late_ok                  # the punctuality promise
         else:
             day.waiting[v] = False
             qsum[0] -= dbar[s_idx]
             wait = t - day.arr_t[v]
-            prom = promised[v]
         wait_v[v] = wait
         if incomplete:
             counters["incompletes"] += 1
@@ -338,8 +347,14 @@ def run_day(sc, dist, draws: DayDraws, params: VariantParams, collect: bool = Fa
             counters["served"] += 1
             waits.append(wait)
             base = sc.employees[e].profile[s_idx][1]
-            cs = visit_csat(base, wait, prom, actual, sc.services[s_idx].target,
-                            sc.alpha_wait, sc.beta_accuracy, sc.gamma_duration)
+            if as_appt:
+                cs = appointment_csat(base, wait, late_ok, late_acc, actual,
+                                      sc.services[s_idx].target,
+                                      sc.gamma_duration)
+            else:
+                cs = visit_csat(base, wait, promised[v], actual,
+                                sc.services[s_idx].target, sc.alpha_wait,
+                                sc.beta_accuracy, sc.gamma_duration)
             csats.append(cs)
             csat_v[v] = cs
             status[v] = ST_SERVED
@@ -441,6 +456,16 @@ def run_day(sc, dist, draws: DayDraws, params: VariantParams, collect: bool = Fa
             try_assign(t)
 
     shown = counters["appts_shown"]
+    # pct_* denominators are SHOWN appointments: a shown appointment never
+    # summoned by close counts against both percentages. Lateness percentiles
+    # are over summoned appointments (lateness is undefined otherwise).
+    if shown > 0:
+        n_ok = sum(1 for x in lateness if x <= late_ok + EPS)
+        n_acc = sum(1 for x in lateness if x <= late_acc + EPS)
+        pct_on_time = n_ok / shown
+        pct_acceptable = n_acc / shown
+    else:
+        pct_on_time = pct_acceptable = 1.0
     metrics = DayMetrics(
         served=float(counters["served"]),
         turned_away=float(counters["turned_away"]),
@@ -449,7 +474,11 @@ def run_day(sc, dist, draws: DayDraws, params: VariantParams, collect: bool = Fa
         incompletes=float(counters["incompletes"]),
         incomplete_min=counters["incomplete_min"],
         appts_shown=float(shown),
-        on_time_rate=(counters["on_time"] / shown) if shown > 0 else 1.0,
+        pct_on_time=pct_on_time,
+        pct_acceptable=pct_acceptable,
+        p50_late=float(np.percentile(lateness, 50)) if lateness else 0.0,
+        p90_late=float(np.percentile(lateness, 90)) if lateness else 0.0,
+        max_late=float(max(lateness)) if lateness else 0.0,
         mean_wait=float(np.mean(waits)) if waits else 0.0,
         p90_wait=float(np.percentile(waits, 90)) if waits else 0.0,
         mean_csat=float(np.mean(csats)) if csats else 0.0,

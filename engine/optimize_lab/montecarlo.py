@@ -12,8 +12,9 @@ from .world import ArrivalDist, gen_day_draws
 
 METRIC_FIELDS = [
     "served", "turned_away", "abandoned", "resolved", "incompletes",
-    "incomplete_min", "appts_shown", "on_time_rate", "mean_wait",
-    "p90_wait", "mean_csat", "makespan",
+    "incomplete_min", "appts_shown", "pct_on_time", "pct_acceptable",
+    "p50_late", "p90_late", "max_late", "mean_wait", "p90_wait",
+    "mean_csat", "makespan",
 ]
 
 

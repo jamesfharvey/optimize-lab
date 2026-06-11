@@ -46,7 +46,7 @@
     "language_preferences": [ { "language": "es", "share": 0.18 } ]
   },
   "policy": {
-    "baseline": { "appointment_share": 0.60, "scheduling_method": "employee_specific", "appointment_grace_min": 5, "appointment_distribution": "match_arrival_pattern" },
+    "baseline": { "appointment_share": 0.60, "scheduling_method": "employee_specific", "appointment_punctuality": { "early_summon_max_min": 10, "late_ok_min": 5, "late_acceptable_min": 10 }, "appointment_distribution": "match_arrival_pattern" },
     "optimized": {
       "matching": { "enabled": true, "aging_cap_min": 40, "weight_preset": "wait_dominant" },
       "appointment_smoothing": { "enabled": true, "target_appointment_share": 0.80 },

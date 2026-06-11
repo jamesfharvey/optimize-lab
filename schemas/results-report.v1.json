@@ -76,9 +76,21 @@
           "$ref": "#/$defs/metricComparison",
           "description": "Optional: time to clear after close"
         },
-        "appointments_on_time_rate": {
-          "$ref": "#/$defs/metricComparison",
-          "description": "Share of appointments summoned within grace window \u2014 guardrail metric, must not degrade"
+        "appointment_punctuality": {
+          "type": "object",
+          "description": "Summon punctuality for appointments (guardrail block). Lateness = max(0, summon - scheduled) over summoned appointments; pct_* denominators are SHOWN appointments, so a shown appointment never summoned counts against both percentages. Guardrail (hard, combined lever set only): optimized p90_lateness_min <= late_acceptable_min AND <= baseline p90_lateness_min. Solo-lever degradations are reported as guardrail_warnings, not failures.",
+          "required": [
+            "baseline",
+            "optimized"
+          ],
+          "properties": {
+            "baseline": {
+              "$ref": "#/$defs/punctualityStats"
+            },
+            "optimized": {
+              "$ref": "#/$defs/punctualityStats"
+            }
+          }
         },
         "resolved_digitally_per_day": {
           "type": "number",
@@ -235,6 +247,31 @@
         }
       }
     },
+    "guardrail_warnings": {
+      "type": "array",
+      "description": "Punctuality degradations observed in SOLO lever runs (p90 lateness worse than baseline). Warnings, not failures: the hard guardrail applies to the combined set only.",
+      "items": {
+        "type": "object",
+        "required": [
+          "lever",
+          "message"
+        ],
+        "properties": {
+          "lever": {
+            "type": "string"
+          },
+          "p90_lateness_baseline": {
+            "type": "number"
+          },
+          "p90_lateness_solo": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "attribution": {
       "type": "array",
       "description": "Share of the COMBINED gain contributed by each selected lever (sums ~100%).",
@@ -256,6 +293,38 @@
     }
   },
   "$defs": {
+    "punctualityStats": {
+      "type": "object",
+      "required": [
+        "pct_on_time",
+        "pct_acceptable",
+        "p50_lateness_min",
+        "p90_lateness_min",
+        "max_lateness_min"
+      ],
+      "properties": {
+        "pct_on_time": {
+          "type": "number",
+          "description": "Share of shown appointments summoned with lateness <= late_ok_min"
+        },
+        "pct_acceptable": {
+          "type": "number",
+          "description": "Share of shown appointments summoned with lateness <= late_acceptable_min"
+        },
+        "p50_lateness_min": {
+          "type": "number",
+          "description": "Within-day median lateness of summoned appointments, averaged across MC days"
+        },
+        "p90_lateness_min": {
+          "type": "number",
+          "description": "Within-day p90 lateness of summoned appointments, averaged across MC days"
+        },
+        "max_lateness_min": {
+          "type": "number",
+          "description": "Maximum lateness observed across all MC days"
+        }
+      }
+    },
     "metricComparison": {
       "type": "object",
       "required": [

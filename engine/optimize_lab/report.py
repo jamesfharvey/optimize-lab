@@ -64,6 +64,18 @@ def _comparison(base: np.ndarray, opt: np.ndarray) -> dict:
     return out
 
 
+def _punctuality_stats(arr: dict) -> dict:
+    """Day-level punctuality stats averaged across MC days; max is the true
+    maximum across all days."""
+    return {
+        "pct_on_time": float(np.mean(arr["pct_on_time"])),
+        "pct_acceptable": float(np.mean(arr["pct_acceptable"])),
+        "p50_lateness_min": float(np.mean(arr["p50_late"])),
+        "p90_lateness_min": float(np.mean(arr["p90_late"])),
+        "max_lateness_min": float(np.max(arr["max_late"])),
+    }
+
+
 def _round_floats(obj, ndigits=4):
     if isinstance(obj, float):
         return round(obj, ndigits)
@@ -141,8 +153,10 @@ def build_report(sc: Scenario, mc: MCResult, deterministic: bool = False,
         "turned_away_per_day": _comparison(base["turned_away"], comb["turned_away"]),
         "mean_csat": _comparison(base["mean_csat"], comb["mean_csat"]),
         "makespan_min": _comparison(base["makespan"], comb["makespan"]),
-        "appointments_on_time_rate": _comparison(base["on_time_rate"],
-                                                 comb["on_time_rate"]),
+        "appointment_punctuality": {
+            "baseline": _punctuality_stats(base),
+            "optimized": _punctuality_stats(comb),
+        },
         "abandoned_per_day": _comparison(base["abandoned"], comb["abandoned"]),
         "resolved_digitally_per_day": float(np.mean(comb["resolved"])),
         "incomplete_time_cost_min_per_day": float(np.mean(comb["incomplete_min"])),
@@ -200,6 +214,24 @@ def build_report(sc: Scenario, mc: MCResult, deterministic: bool = False,
         per_lever.append(entry)
         solo_wait_reduction[lv] = b_wait - float(np.mean(arr["mean_wait"]))
 
+    # guardrail warnings: solo lever runs that worsen p90 summon lateness.
+    # Warnings only — the hard punctuality guardrail applies to the combined
+    # set (asserted in tests, not here).
+    guardrail_warnings = []
+    base_p90_late = float(np.mean(base["p90_late"]))
+    for lv in sel:
+        solo_p90 = float(np.mean(mc.arrays[frozenset([lv])]["p90_late"]))
+        if solo_p90 > base_p90_late + 1e-9:
+            guardrail_warnings.append({
+                "lever": lv,
+                "p90_lateness_baseline": base_p90_late,
+                "p90_lateness_solo": solo_p90,
+                "message": f"Solo lever '{lv}' degrades appointment p90 "
+                           f"lateness vs baseline ({base_p90_late:.1f} -> "
+                           f"{solo_p90:.1f} min). The combined lever set is "
+                           f"the guardrail-gated configuration.",
+            })
+
     # attribution: solo mean-wait reductions rescaled to sum to 100%
     attribution = []
     total_reduction = sum(solo_wait_reduction.values())
@@ -231,6 +263,8 @@ def build_report(sc: Scenario, mc: MCResult, deterministic: bool = False,
         "per_lever_impact": per_lever,
         "attribution": attribution,
     }
+    if guardrail_warnings:
+        report["guardrail_warnings"] = guardrail_warnings
     if csv_path:
         report["raw_data_ref"] = str(csv_path)
     if mc.break_schedule:
@@ -267,7 +301,6 @@ def summary_text(report: dict) -> str:
         ("mean_csat", "predicted CSAT (0-100)"),
         ("csat_5pt", "CSAT (5-pt)"),
         ("abandoned_per_day", "abandoned / day"),
-        ("appointments_on_time_rate", "appt on-time rate"),
         ("makespan_min", "makespan past close (min)"),
     ]:
         c = m[key]
@@ -277,6 +310,20 @@ def summary_text(report: dict) -> str:
                  f"{m['resolved_digitally_per_day']:>21.2f}")
     lines.append(f"  {'incomplete cost (min/day)':<28}"
                  f"{m['incomplete_time_cost_min_per_day']:>21.2f}")
+    p = m["appointment_punctuality"]
+    lines.append("  appointment punctuality (baseline -> optimized):")
+    for key, label, mult in [
+        ("pct_on_time", "on-time (<= late_ok)", 100.0),
+        ("pct_acceptable", "acceptable (<= late_acceptable)", 100.0),
+        ("p50_lateness_min", "p50 lateness (min)", 1.0),
+        ("p90_lateness_min", "p90 lateness (min)", 1.0),
+        ("max_lateness_min", "max lateness (min)", 1.0),
+    ]:
+        unit = "%" if mult == 100.0 else "  "
+        lines.append(f"    {label:<32}{p['baseline'][key] * mult:>8.1f}{unit}"
+                     f" -> {p['optimized'][key] * mult:>7.1f}{unit}")
+    for w in report.get("guardrail_warnings", []):
+        lines.append(f"  GUARDRAIL WARNING: {w['message']}")
     if report.get("per_lever_impact"):
         lines.append("  per-lever solo impact (served% / wait%):")
         for e in report["per_lever_impact"]:

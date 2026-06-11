@@ -79,7 +79,9 @@ class Employee:
 class BaselinePolicy:
     appointment_share: float
     scheduling_method: str
-    grace: int
+    early_summon_max: int     # may summon this early, only once checked in
+    late_ok: int              # promise kept within this (on-time)
+    late_acceptable: int      # tolerated on bad days, never the norm
     distribution: str
 
 
@@ -249,12 +251,17 @@ def load_scenario(source) -> Scenario:
 
     pol = data["policy"]
     base = pol["baseline"]
+    punct = base.get("appointment_punctuality", {})
     baseline = BaselinePolicy(
         appointment_share=float(base["appointment_share"]),
         scheduling_method=base.get("scheduling_method", "round_robin"),
-        grace=int(base.get("appointment_grace_min", 10)),
+        early_summon_max=int(punct.get("early_summon_max_min", 10)),
+        late_ok=int(punct.get("late_ok_min", 5)),
+        late_acceptable=int(punct.get("late_acceptable_min", 15)),
         distribution=base.get("appointment_distribution", "even"),
     )
+    if baseline.late_acceptable < baseline.late_ok:
+        raise ValueError("late_acceptable_min must be >= late_ok_min")
     levers = _normalize_levers(pol.get("optimized", {}))
 
     sim = data.get("simulation", {})

@@ -6,7 +6,8 @@ Both policies share two hard rules:
     start a drop-in v if t + eff_duration(e, v) > next_appt_start(e) — unless
     EVERY eligible employee for v is excluded the same way, in which case the
     free employee with the shortest overrun may take v, and only if doing so
-    still summons e's appointment within +grace.
+    still summons e's appointment within late_ok_min (the punctuality
+    promise; formerly the +grace allowance).
 
 next_appt_start(e) comes from a reservation forecast:
   - employee_specific: appointments are pinned at generation (round-robin =
@@ -113,7 +114,7 @@ def _collision_allowed(day, e, v, s_idx, t):
         if t + day.dur[e2][s_idx] <= day.next_appt[e2] + EPS:
             return False  # someone could take it cleanly; e stays excluded
     # All excluded -> the FREE employee with the shortest overrun may take it,
-    # if the overrun still summons e's appointment within +grace.
+    # if the overrun still summons e's appointment within late_ok_min.
     free_elig = [e2 for e2 in day.sc.eligible_emps[s_idx]
                  if day.lang_ok(e2, v) and day.is_free(e2, t)]
     if not free_elig:
@@ -122,7 +123,7 @@ def _collision_allowed(day, e, v, s_idx, t):
     shortest = min(free_elig, key=lambda e2: (overrun[e2], e2))
     if shortest != e:
         return False
-    return t + d <= day.next_appt[e] + day.grace + EPS
+    return t + d <= day.next_appt[e] + day.late_ok + EPS
 
 
 def _heads(day, e, t, services):
@@ -159,18 +160,22 @@ def pick_baseline(day, e, t):
 
 
 def pick_optimized(day, e, t):
-    """Aging cap first (qualified services, longest wait); otherwise blended
-    score over focused candidates; falls back to all qualified services when
-    no focused candidate is waiting (work-conserving, documented)."""
+    """Pick the candidate pool first — focused services, falling back to all
+    qualified services when no focused candidate is waiting (work-conserving).
+    Within that pool the aging cap overrides the blended score: any candidate
+    waiting >= cap is taken longest-first. Scoping the cap to the routed pool
+    (rather than the full profile) preserves specialization under load; the
+    focus coverage guarantee (every service keeps >= 1 focused employee) plus
+    the fallback is what rescues aged visitors of out-of-focus services."""
     profile = day.sc.employees[e].profile.keys()
     all_cands = _heads(day, e, t, profile)
     if not all_cands:
         return None
-    aged = [c for c in all_cands if c[2] >= day.aging_cap - EPS]
-    if aged:
-        return min(aged, key=lambda c: (-c[2], c[0]))[:2]
     focused = [c for c in all_cands if c[1] in day.focus[e]]
     pool = focused if focused else all_cands
+    aged = [c for c in pool if c[2] >= day.aging_cap - EPS]
+    if aged:
+        return min(aged, key=lambda c: (-c[2], c[0]))[:2]
     return _blended_pick(day, e, pool)[:2]
 
 
