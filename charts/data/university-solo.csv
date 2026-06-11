@@ -1,0 +1,6 @@
+lever,served_delta_pct,mean_wait_delta_pct,p90_wait_delta_pct,csat_delta_pts
+matching,5.72,-33.12,-15.09,-6.57
+appointment_smoothing,3.18,-54.91,-50.07,5.71
+prep_in_queue,10.27,-42.34,-40.12,3.48
+deflection,-0.43,-5.02,-5.23,0.18
+running_late,0.15,0.6,0.7,0.13

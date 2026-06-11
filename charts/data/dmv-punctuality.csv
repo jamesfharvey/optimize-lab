@@ -1,0 +1,4 @@
+stat,baseline,combined,late_ok_min,late_acceptable_min
+p50 lateness,0.0,0.0,5,15
+p90 lateness,0.0,0.0,5,15
+max lateness,9.3626,12.622,5,15

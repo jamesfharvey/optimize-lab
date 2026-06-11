@@ -1,0 +1,46 @@
+step,column,levers_active,metric,value,increment_vs_prev,delta_vs_baseline
+0,Baseline,,mean wait (min),14.0979,,
+1,+ Matching,matching,mean wait (min),14.2885,0.1906,0.1906
+2,+ Smoothing,matching|appointment_smoothing,mean wait (min),11.1233,-3.1651,-2.9745
+3,+ Prep ⚠,matching|appointment_smoothing|prep_in_queue,mean wait (min),5.3997,-5.7236,-8.6981
+4,+ Running Late  (= COMBINED),matching|appointment_smoothing|prep_in_queue|running_late,mean wait (min),5.7813,0.3816,-8.3166
+0,Baseline,,p90 wait (min),40.5869,,
+1,+ Matching,matching,p90 wait (min),38.4875,-2.0994,-2.0994
+2,+ Smoothing,matching|appointment_smoothing,p90 wait (min),30.3612,-8.1263,-10.2257
+3,+ Prep ⚠,matching|appointment_smoothing|prep_in_queue,p90 wait (min),11.4605,-18.9007,-29.1264
+4,+ Running Late  (= COMBINED),matching|appointment_smoothing|prep_in_queue|running_late,p90 wait (min),12.6736,1.2131,-27.9133
+0,Baseline,,in-office served/day,155.34,,
+1,+ Matching,matching,in-office served/day,155.25,-0.09,-0.09
+2,+ Smoothing,matching|appointment_smoothing,in-office served/day,150.98,-4.27,-4.36
+3,+ Prep ⚠,matching|appointment_smoothing|prep_in_queue,in-office served/day,153.125,2.145,-2.215
+4,+ Running Late  (= COMBINED),matching|appointment_smoothing|prep_in_queue|running_late,in-office served/day,157.2,4.075,1.86
+0,Baseline,,resolved digitally/day,0.0,,
+1,+ Matching,matching,resolved digitally/day,0.0,0.0,0.0
+2,+ Smoothing,matching|appointment_smoothing,resolved digitally/day,0.0,0.0,0.0
+3,+ Prep ⚠,matching|appointment_smoothing|prep_in_queue,resolved digitally/day,0.0,0.0,0.0
+4,+ Running Late  (= COMBINED),matching|appointment_smoothing|prep_in_queue|running_late,resolved digitally/day,0.0,0.0,0.0
+0,Baseline,,abandoned/day,2.76,,
+1,+ Matching,matching,abandoned/day,2.59,-0.17,-0.17
+2,+ Smoothing,matching|appointment_smoothing,abandoned/day,1.37,-1.22,-1.39
+3,+ Prep ⚠,matching|appointment_smoothing|prep_in_queue,abandoned/day,0.835,-0.535,-1.925
+4,+ Running Late  (= COMBINED),matching|appointment_smoothing|prep_in_queue|running_late,abandoned/day,0.865,0.03,-1.895
+0,Baseline,,turned away/day,5.76,,
+1,+ Matching,matching,turned away/day,6.02,0.26,0.26
+2,+ Smoothing,matching|appointment_smoothing,turned away/day,6.18,0.16,0.42
+3,+ Prep ⚠,matching|appointment_smoothing|prep_in_queue,turned away/day,4.57,-1.61,-1.19
+4,+ Running Late  (= COMBINED),matching|appointment_smoothing|prep_in_queue|running_late,turned away/day,4.745,0.175,-1.015
+0,Baseline,,predicted CSAT (0-100),77.0919,,
+1,+ Matching,matching,predicted CSAT (0-100),77.0131,-0.0789,-0.0789
+2,+ Smoothing,matching|appointment_smoothing,predicted CSAT (0-100),79.8262,2.8132,2.7343
+3,+ Prep ⚠,matching|appointment_smoothing|prep_in_queue,predicted CSAT (0-100),83.9318,4.1056,6.8399
+4,+ Running Late  (= COMBINED),matching|appointment_smoothing|prep_in_queue|running_late,predicted CSAT (0-100),83.7313,-0.2005,6.6394
+0,Baseline,,predicted CSAT (5-pt),4.0,,
+1,+ Matching,matching,predicted CSAT (5-pt),3.9948,-0.0052,-0.0052
+2,+ Smoothing,matching|appointment_smoothing,predicted CSAT (5-pt),4.1736,0.1788,0.1736
+3,+ Prep ⚠,matching|appointment_smoothing|prep_in_queue,predicted CSAT (5-pt),4.4126,0.239,0.4126
+4,+ Running Late  (= COMBINED),matching|appointment_smoothing|prep_in_queue|running_late,predicted CSAT (5-pt),4.4015,-0.011,0.4015
+0,Baseline,,appt p90 lateness (min),12.7611,,
+1,+ Matching,matching,appt p90 lateness (min),12.4962,-0.2649,-0.2649
+2,+ Smoothing,matching|appointment_smoothing,appt p90 lateness (min),23.3989,10.9027,10.6378
+3,+ Prep ⚠,matching|appointment_smoothing|prep_in_queue,appt p90 lateness (min),7.0457,-16.3532,-5.7154
+4,+ Running Late  (= COMBINED),matching|appointment_smoothing|prep_in_queue|running_late,appt p90 lateness (min),8.2514,1.2056,-4.5097
