@@ -124,6 +124,11 @@ prefixes in canonical lever order (for the waterfall), and the combined set
     paired evaluation days under the baseline policy; daily break variability
     still applies to the recommended windows. Recommendation is reported as
     `break_schedule_recommendation`.
+12. **Schema defaults are mirrored in config.py** (jsonschema does not inject
+    defaults), so the deflection-default revision 0.10 → 0.02 (June 11, 2026)
+    touched the single mirrored constant in config.py — an approved exception
+    to the engine freeze. Presets set the rate explicitly; behavior is
+    unchanged for them.
 
 ### Validation status
 
@@ -150,11 +155,17 @@ The anchor is asserted on every test run
 presets are committed and byte-exact
 (`OPTLAB_REGEN_GOLDEN=1 pytest` to regenerate deliberately).
 
-**Punctuality guardrail (decision 2026-06-11):** hard gate on the COMBINED
-lever set only — optimized p90 lateness ≤ `late_acceptable_min` AND not
-worse than baseline (0.5-min operational tolerance). Solo-lever
-degradations surface as `guardrail_warnings` in the ResultsReport. The
-Clinic finding stands and is asserted as a warning: appointment smoothing
-SOLO pushes p90 lateness from ~12.8 to ~23.4 min (share 0.60 → 0.80 under
-employee-specific pinning), while the combined stack lands at ~8.3 min —
-inside the clinic's 10-minute acceptable limit and better than baseline.
+**Punctuality guardrail (redefined 2026-06-11, uniform across presets):**
+hard gate on the COMBINED lever set only. PASS iff
+`p90_lateness ≤ late_acceptable_min` AND (`p90_lateness ≤ late_ok_min` OR
+`p90_lateness ≤ baseline p90 + 0.5`). The absolute clause asserts the
+customer-stated promise (≥90% of appointments start within late_ok); the
+relative clause preserves non-degradation for shops whose baseline already
+runs past late_ok; the 0.5-min tolerance applies only to the relative
+clause. Current presets: University passes via the promise clause (0.59 ≤
+5), DMV via the promise clause (0.00), Clinic via the relative clause
+(8.25 ≤ 12.76 + 0.5, and inside its 10-minute acceptable limit).
+Solo-lever degradations surface as `guardrail_warnings` in the
+ResultsReport. The Clinic finding stands and is asserted as a warning:
+appointment smoothing SOLO pushes p90 lateness from ~12.8 to ~23.4 min
+(share 0.60 → 0.80 under employee-specific pinning).

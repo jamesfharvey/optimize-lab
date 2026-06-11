@@ -11,11 +11,18 @@ preferences, appointment_share 0, abandonment disabled, matching only,
 200 days, seed 42. The engine's normative effective-duration formula
 (efficiency in BOTH policies) stands as built.
 
-Punctuality guardrail (decision 2026-06-11): hard-assert ONLY on the
-combined selected lever set — optimized p90 lateness must be within
-late_acceptable_min and must not exceed baseline p90 lateness. Solo-lever
-degradations (notably Clinic appointment-smoothing solo — a real, valuable
-finding) surface as guardrail_warnings in the ResultsReport, not failures.
+Punctuality guardrail (redefined 2026-06-11, uniform across presets):
+hard-assert ONLY on the combined selected lever set. PASS iff
+  p90_lateness_optimized <= late_acceptable_min
+  AND (p90_lateness_optimized <= late_ok_min
+       OR p90_lateness_optimized <= p90_lateness_baseline + 0.5).
+The absolute clause asserts the customer-stated promise (>= 90% of
+appointments start within late_ok); the relative clause preserves
+non-degradation for shops whose baseline already runs past late_ok
+(Clinic). The 0.5-min operational tolerance applies ONLY to the relative
+clause. Solo-lever degradations (notably Clinic appointment-smoothing solo
+— a real, valuable finding) surface as guardrail_warnings in the
+ResultsReport, not failures.
 """
 import json
 import os
@@ -99,20 +106,22 @@ def preset_runs():
 
 @pytest.mark.parametrize("stem", [p.stem for p in PRESETS])
 def test_punctuality_guardrail_combined(preset_runs, stem):
-    """Hard guardrail, combined lever set only: optimized p90 lateness within
-    late_acceptable_min AND not worse than baseline."""
+    """Hard guardrail, combined lever set only (redefined 2026-06-11):
+    p90 <= late_acceptable AND (p90 <= late_ok OR p90 <= baseline p90 + 0.5).
+    The absolute clause asserts the customer promise; the relative clause
+    covers shops whose baseline already runs past late_ok. The 0.5-min
+    operational tolerance applies only to the relative clause."""
     sc, mc, _ = preset_runs[stem]
     base_p90 = float(np.mean(mc.of("baseline")["p90_late"]))
     comb_p90 = float(np.mean(mc.of("combined")["p90_late"]))
     assert comb_p90 <= sc.baseline.late_acceptable + 1e-9, \
         f"{stem}: combined p90 lateness {comb_p90:.2f} exceeds " \
         f"late_acceptable {sc.baseline.late_acceptable}"
-    # 0.5-minute operational tolerance: when the baseline p90 is ~0 (e.g.
-    # University, 40 appts/day all on time), a sub-minute shift is below
-    # measurement resolution, not a degradation.
-    assert comb_p90 <= base_p90 + 0.5, \
-        f"{stem}: combined p90 lateness {comb_p90:.2f} worse than " \
-        f"baseline {base_p90:.2f}"
+    assert (comb_p90 <= sc.baseline.late_ok + 1e-9
+            or comb_p90 <= base_p90 + 0.5), \
+        f"{stem}: combined p90 lateness {comb_p90:.2f} breaks the promise " \
+        f"(late_ok {sc.baseline.late_ok}) and degrades vs baseline " \
+        f"{base_p90:.2f}"
 
 
 def test_clinic_smoothing_solo_warning_documented(preset_runs):

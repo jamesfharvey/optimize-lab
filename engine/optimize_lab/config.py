@@ -166,7 +166,7 @@ def _normalize_levers(opt: dict) -> dict:
         },
         "deflection": {
             "enabled": deflection.get("enabled", False),
-            "rate": deflection.get("rate", 0.1),
+            "rate": deflection.get("rate", 0.02),
         },
         "running_late": {
             "enabled": running_late.get("enabled", False),

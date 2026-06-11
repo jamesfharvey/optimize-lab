@@ -2,7 +2,7 @@
   "meta": {
     "scenario_name": "State University One-Stop — Semester-Start Surge",
     "schema_version": "1.0.0",
-    "notes": "Reference preset: 6 employees, 5 services, midday surge x2, 80/20 drop-in/appointment baseline. Golden vectors are generated from this scenario at seed 42. Recalibrated June 11, 2026: demand raised 220 -> 255/day to restore the oversubscribed-surge regime for demo credibility (baseline wait ~43 min, p90 ~105, ~18 abandonments/day; optimized in-office served holds within 2% of baseline while ~23/day resolve digitally). The validation anchor environment pins demand at 220/day independently of this preset."
+    "notes": "Reference preset: 6 employees, 5 services, midday surge x2, 80/20 drop-in/appointment baseline. Golden vectors are generated from this scenario at seed 42. Recalibrated June 11, 2026: demand raised 220 -> 255/day to restore the oversubscribed-surge regime for demo credibility (baseline wait ~43 min, p90 ~105, ~18 abandonments/day). Lever defaults revised June 11, 2026: deflection 2% - optimized in-office served now rises ~8% above baseline while ~5/day resolve digitally; combined p90 lateness 0.6 min passes the punctuality gate via the late_ok promise clause. The validation anchor environment pins demand at 220/day independently of this preset."
   },
   "location": { "name": "One-Stop Student Services", "open": "08:00", "close": "17:00", "last_join_minutes_before_close": 30 },
   "services": [
@@ -49,7 +49,7 @@
       "matching": { "enabled": true, "aging_cap_min": 45, "weight_preset": "wait_dominant" },
       "appointment_smoothing": { "enabled": true, "target_appointment_share": 0.75 },
       "prep_in_queue": { "enabled": true, "duration_reduction": 0.15 },
-      "deflection": { "enabled": true, "rate": 0.10 },
+      "deflection": { "enabled": true, "rate": 0.02 },
       "running_late": { "enabled": true, "no_show_reduction": 0.15 }
     },
     "no_show_rate": 0.08

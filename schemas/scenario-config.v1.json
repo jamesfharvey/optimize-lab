@@ -457,8 +457,8 @@
                   "type": "number",
                   "minimum": 0,
                   "maximum": 0.5,
-                  "default": 0.1,
-                  "description": "ASSUMPTION FLAG: fraction of visits resolved before arrival (self-service). Removed from demand; reported separately as 'resolved digitally'."
+                  "default": 0.02,
+                  "description": "ASSUMPTION FLAG: fraction of visits resolved before arrival (self-service). Removed from demand; reported separately as 'resolved digitally'. Conservative default lowered 0.10 -> 0.02 by decision June 11, 2026; validate per customer before quoting externally."
                 }
               }
             },
