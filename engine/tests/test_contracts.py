@@ -56,7 +56,9 @@ def test_defaults_applied():
     sc = load_scenario(cfg)
     assert sc.last_join == 30
     assert sc.baseline.scheduling_method == "round_robin"
-    assert sc.baseline.grace == 10
+    assert sc.baseline.early_summon_max == 10     # punctuality defaults
+    assert sc.baseline.late_ok == 5
+    assert sc.baseline.late_acceptable == 15
     assert sc.baseline.distribution == "even"
     assert sc.no_show_rate == 0.08
     assert sc.mc_days == 200
@@ -102,6 +104,11 @@ def test_report_round_trip(tmp_path):
                 "turned_away_per_day", "mean_csat"):
         assert "baseline" in m[key] and "optimized" in m[key]
         assert "ci95_low" in m[key] or m[key]["baseline"] == 0
+    punct = m["appointment_punctuality"]
+    for side in ("baseline", "optimized"):
+        for stat in ("pct_on_time", "pct_acceptable", "p50_lateness_min",
+                     "p90_lateness_min", "max_lateness_min"):
+            assert stat in punct[side]
     steps = [w["step"] for w in report["waterfall"]]
     assert steps == sorted(steps) and steps[0] == 0
     assert report["waterfall"][0]["levers_active"] == []

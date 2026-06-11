@@ -8,7 +8,8 @@ from conftest import PRESETS, hand_draws, load_mini, mini_config
 
 from optimize_lab import abandonment, policies
 from optimize_lab.config import load_scenario
-from optimize_lab.csat import predicted_csat, to_five_point, visit_csat
+from optimize_lab.csat import (appointment_csat, predicted_csat,
+                               punctuality_factor, to_five_point, visit_csat)
 from optimize_lab.levers import make_params, optimize_breaks
 from optimize_lab.montecarlo import run_scenario_mc
 from optimize_lab.simulate import VariantParams, build_appointment_schedule, run_day
@@ -70,7 +71,7 @@ def collision_draws(sc):
 
 
 def test_collision_rule_blocks_dropin():
-    # A takes 40 min: 590+40=630 > appt 615, and 630 > 615+grace(10) so even
+    # A takes 40 min: 590+40=630 > appt 615, and 630 > 615+late_ok(5) so even
     # the all-blocked exception refuses; employee idles until the appointment.
     sc = collision_scenario(40)
     params = VariantParams(appt_share=0.5, distribution="even", matching=False)
@@ -79,19 +80,20 @@ def test_collision_rule_blocks_dropin():
     assert appt[R_CHECKIN] == 615
     assert appt[R_START] == 605            # summoned at window open (s - grace)
     assert walk[R_START] == 615            # only after the appointment cleared
-    assert m.on_time_rate == 1.0
+    assert m.pct_on_time == 1.0
     assert m.served == 2
 
 
-def test_collision_exception_within_grace():
+def test_collision_exception_within_late_ok():
     # A takes 30 min: every eligible employee is blocked (there is only one),
-    # shortest-overrun employee may take it since 590+30=620 <= 615+10.
+    # shortest-overrun employee may take it since 590+30=620 <= 615+late_ok(5).
     sc = collision_scenario(30)
     params = VariantParams(appt_share=0.5, distribution="even", matching=False)
     m, rows = run(sc, collision_draws(sc), params)
     assert rows[0][R_START] == 590         # walk-in taken immediately
-    assert rows[1][R_START] == 620         # appointment right after, within +grace
-    assert m.on_time_rate == 1.0
+    assert rows[1][R_START] == 620         # appointment right after, within late_ok
+    assert m.pct_on_time == 1.0            # lateness 5 <= late_ok 5
+    assert m.max_late == pytest.approx(5)
 
 
 def test_collision_excluded_when_another_employee_clean():
@@ -115,7 +117,7 @@ def test_collision_excluded_when_another_employee_clean():
     day.sc = sc
     day.dur = [[15.0, math.inf], [30.0, math.inf]]
     day.next_appt = [610.0, math.inf]
-    day.grace = 10.0
+    day.late_ok = 5.0
     assert policies._collision_allowed(day, 0, 0, 0, 600.0) is False
     assert policies._collision_allowed(day, 1, 0, 0, 600.0) is True
 
@@ -178,7 +180,7 @@ class FakeDay:
     """Duck-typed _Day for surgical picker tests."""
 
     def __init__(self, sc, dur, q, arr_t, focus=None, next_appt=None,
-                 weights=(0.6, 0.4, 0.0), aging_cap=45, grace=10,
+                 weights=(0.6, 0.4, 0.0), aging_cap=45, late_ok=5,
                  lang_block=()):
         self.sc = sc
         self.dur = dur
@@ -190,7 +192,7 @@ class FakeDay:
         self.next_appt = next_appt or [math.inf] * sc.n_employees
         self.weights = weights
         self.aging_cap = aging_cap
-        self.grace = grace
+        self.late_ok = late_ok
         self._lang_block = set(lang_block)
 
     def lang_ok(self, e, v):
@@ -219,14 +221,21 @@ def test_focus_sets_and_aging_cap():
     focus = policies.compute_focus(sc)         # means: A 1.5, B 1.0
     assert focus[0] == {0} and focus[1] == {1}
     dur = [[15.0, 20.0], [30.0, 20.0 / 3]]
-    # vB waited 50 >= cap: aging overrides focus for E1 even though B is out of focus
+    # aging cap is scoped to the ROUTED pool: with a focused candidate
+    # waiting, E1 stays specialized even though the out-of-focus B visitor
+    # has waited past the cap (B's own focused employee rescues them)
     day = FakeDay(sc, dur, q=[[0], [1]], arr_t=[595.0, 550.0], focus=focus)
-    assert policies.pick_optimized(day, 0, 600.0)[0] == 1
+    assert policies.pick_optimized(day, 0, 600.0)[0] == 0
+    # within the focused pool, an aged candidate overrides the blended score
+    day = FakeDay(sc, dur, q=[[0, 2], [1]], arr_t=[550.0, 550.0, 595.0],
+                  focus=focus)
+    assert policies.pick_optimized(day, 0, 600.0)[0] == 0   # aged focused head
     # below the cap, the focused service wins despite the longer B wait
     day = FakeDay(sc, dur, q=[[0], [1]], arr_t=[595.0, 580.0], focus=focus)
     assert policies.pick_optimized(day, 0, 600.0)[0] == 0
-    # no focused candidate waiting -> work-conserving fallback to qualified
-    day = FakeDay(sc, dur, q=[[], [1]], arr_t=[0.0, 580.0], focus=focus)
+    # no focused candidate waiting -> work-conserving fallback, and the cap
+    # applies within the fallback pool (aged B is rescued here)
+    day = FakeDay(sc, dur, q=[[], [1]], arr_t=[0.0, 550.0], focus=focus)
     assert policies.pick_optimized(day, 0, 600.0)[0] == 1
 
 
@@ -446,7 +455,9 @@ def test_pins_round_robin_and_employee_specific_waits():
                         VariantParams(1.0, "even", False))
     # E1 (dur 125) ties up appt 0 until 680; appt 2 is pinned and goes late
     assert rows_es[2][R_START] == pytest.approx(680)
-    assert m_es.on_time_rate == pytest.approx(2 / 3)
+    assert m_es.pct_on_time == pytest.approx(2 / 3)     # lateness 15 > late_ok 5
+    assert m_es.pct_acceptable == pytest.approx(1.0)    # but within 15-min limit
+    assert m_es.max_late == pytest.approx(15)
     sc_rr = load_scenario(mini_config(policy={
         "baseline": {"appointment_share": 1.0,
                      "scheduling_method": "round_robin",
@@ -457,10 +468,10 @@ def test_pins_round_robin_and_employee_specific_waits():
                         VariantParams(1.0, "even", False))
     # first eligible FREE employee takes it at summon time instead
     assert rows_rr[2][R_START] == pytest.approx(655)
-    assert m_rr.on_time_rate == 1.0
+    assert m_rr.pct_on_time == 1.0
 
 
-def test_on_time_guardrail_counts_late_and_unsummoned():
+def test_punctuality_stats_capture_lateness():
     cfg = mini_config(
         services=[{"id": "A", "name": "Long", "target_duration_min": 100,
                    "demand_share": 0.5},
@@ -475,7 +486,10 @@ def test_on_time_guardrail_counts_late_and_unsummoned():
     m, rows = run(sc, d, VariantParams(1.0, "even", False))
     assert rows[1][R_START] == pytest.approx(670)
     assert m.served == 2
-    assert m.on_time_rate == pytest.approx(0.5)
+    assert m.pct_on_time == pytest.approx(0.5)      # lateness 20 > late_ok 5
+    assert m.pct_acceptable == pytest.approx(0.5)   # and > late_acceptable 15
+    assert m.p90_late == pytest.approx(np.percentile([0.0, 20.0], 90))
+    assert m.max_late == pytest.approx(20)
 
 
 # ---------------------------------------------------------------- day boundary
@@ -521,6 +535,60 @@ def test_csat_formula():
     assert visit_csat(80, 10, 10, 45, 30, **kw) == pytest.approx(
         80 * (1 - 0.3 * 0.5))
     assert predicted_csat(90, 45, 30, 0.3) == pytest.approx(90 * 0.85)
+
+
+def test_punctuality_curve_kinked_convex():
+    k1, k2 = 5.0, 15.0
+    # promise kept: no penalty (early summons clamp to lateness 0 upstream)
+    assert punctuality_factor(0, k1, k2) == 1.0
+    assert punctuality_factor(5, k1, k2) == 1.0
+    # mild linear ramp between the kinks
+    assert punctuality_factor(10, k1, k2) == pytest.approx(0.95)
+    assert punctuality_factor(15, k1, k2) == pytest.approx(0.90)
+    # convex (quadratic) growth past late_acceptable, floor-capped at 0
+    assert punctuality_factor(45, k1, k2) == pytest.approx(
+        0.90 - 0.90 * (30 / 60) ** 2)
+    assert punctuality_factor(500, k1, k2) == 0.0
+    # convexity: equal lateness increments cost increasingly more
+    drops = [punctuality_factor(k2 + d, k1, k2)
+             - punctuality_factor(k2 + d + 10, k1, k2) for d in (0, 10, 20)]
+    assert drops[0] < drops[1] < drops[2]
+    # monotone non-increasing overall
+    vals = [punctuality_factor(x, k1, k2) for x in np.linspace(0, 120, 240)]
+    assert all(b <= a + 1e-12 for a, b in zip(vals, vals[1:]))
+
+
+def test_high_base_csat_partially_recovers_late_start():
+    # Same lateness (20 min, beyond late_acceptable 15): a high-CSAT,
+    # faster-than-target employee retains a higher predicted score than a
+    # low-CSAT, slower-than-target one. The multiplicative recovery is
+    # intentional (see csat.py docstring).
+    k1, k2, gamma = 5.0, 15.0, 0.3
+    high = appointment_csat(92, 20.0, k1, k2, actual_duration=24,
+                            target_duration=30, gamma=gamma)
+    low = appointment_csat(75, 20.0, k1, k2, actual_duration=45,
+                           target_duration=30, gamma=gamma)
+    assert high > low
+    assert high == pytest.approx(92 * punctuality_factor(20, k1, k2))
+
+
+def test_unsummoned_shown_appointment_counts_against_pct():
+    # Employee's shift ends before the slot: the appointment checks in, is
+    # never summoned, and counts against both punctuality percentages while
+    # the lateness percentiles stay over summoned appointments only.
+    sc = load_mini(employees=[{
+        "id": "E1", "name": "One", "work_end": "10:00",
+        "profile": [{"service_id": "A", "efficiency": 1.0, "csat": 80},
+                    {"service_id": "B", "efficiency": 1.0, "csat": 80}]}])
+    d = hand_draws(sc, arrivals=[0.0], services=["B"],
+                   u_appt=np.array([0.1]))     # single even slot at 615
+    m, rows = run(sc, d, VariantParams(0.5, "even", False))
+    assert m.appts_shown == 1
+    assert m.turned_away == 1
+    assert m.pct_on_time == 0.0
+    assert m.pct_acceptable == 0.0
+    assert m.max_late == 0.0                   # no summoned lateness samples
+    assert rows[0][R_STATUS] == "turned_away"
 
 
 def test_five_point_translation():

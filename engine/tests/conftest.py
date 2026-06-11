@@ -47,7 +47,10 @@ def mini_config(**over):
         "policy": {
             "baseline": {"appointment_share": 0.0,
                          "scheduling_method": "round_robin",
-                         "appointment_grace_min": 10,
+                         "appointment_punctuality": {
+                             "early_summon_max_min": 10,
+                             "late_ok_min": 5,
+                             "late_acceptable_min": 15},
                          "appointment_distribution": "even"},
             "optimized": {"matching": {"enabled": True, "aging_cap_min": 45,
                                        "weight_preset": "wait_dominant"}},
