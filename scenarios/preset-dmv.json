@@ -2,7 +2,7 @@
   "meta": {
     "scenario_name": "County DMV — High-Volume Transactional Office",
     "schema_version": "1.0.0",
-    "notes": "Ticket-culture office: mostly drop-in, short transactional services, protected long-duration Road Test. Lower appointment share, morning surge."
+    "notes": "Ticket-culture office: mostly drop-in, short transactional services, protected long-duration Road Test. Lower appointment share, morning surge. Recalibrated June 11, 2026: demand raised 320 -> 400/day and deflection trimmed 0.15 -> 0.10 to restore the oversubscribed-surge regime for demo credibility (baseline wait ~28 min, ~18 abandonments/day). KNOWN LIMIT: the in-office served target (combined >= baseline - 2%) is unreachable here within scenario-data knobs - the smoothing lever's no-show drain (50% appointment share x 10% no-shows ~ 4% of demand) plus the 10% deflection floor exceeds baseline's loss rate at any demand level where baseline wait stays inside 15-30 min. Best feasible point committed: combined in-office serves ~9% fewer while ~40/day resolve digitally on top. See spec change log v1.2."
   },
   "location": { "name": "County DMV Office", "open": "08:00", "close": "17:00", "last_join_minutes_before_close": 45 },
   "services": [
@@ -46,7 +46,7 @@
       { "service_id": "TT", "efficiency": 1.00, "csat": 81 } ] }
   ],
   "demand": {
-    "visitors_per_day": 320,
+    "visitors_per_day": 400,
     "arrival_pattern": { "shape": "double_surge", "surges": [
       { "start": "08:00", "end": "10:00", "multiplier": 1.8 },
       { "start": "12:00", "end": "13:30", "multiplier": 1.6 } ] },
@@ -58,7 +58,7 @@
       "matching": { "enabled": true, "aging_cap_min": 45, "weight_preset": "wait_dominant" },
       "appointment_smoothing": { "enabled": true, "target_appointment_share": 0.50 },
       "prep_in_queue": { "enabled": true, "duration_reduction": 0.12 },
-      "deflection": { "enabled": true, "rate": 0.15 },
+      "deflection": { "enabled": true, "rate": 0.10 },
       "running_late": { "enabled": true, "no_show_reduction": 0.15 }
     },
     "no_show_rate": 0.10

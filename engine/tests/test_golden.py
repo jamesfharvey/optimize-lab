@@ -42,6 +42,10 @@ def validation_config(days=200):
     data["location"]["close"] = "16:00"
     data["location"]["last_join_minutes_before_close"] = 0
     data["demand"]["language_preferences"] = []
+    # The anchor ENVIRONMENT pins demand at 220/day (the validated band's
+    # world). Preset recalibrations (Phase 2.5) must not move the anchor.
+    data["demand"]["visitors_per_day"] = 220
+    data["demand"].pop("visitors_per_day_range", None)
     data["policy"]["baseline"]["appointment_share"] = 0.0
     data["policy"]["optimized"] = {
         "matching": {"enabled": True, "aging_cap_min": 45,

@@ -122,18 +122,18 @@ mean wait (min) · p90 wait (min) · served per day · turned away per day · pr
 
 Discrete-event simulation of the operating day (arrivals → queue → summon → serve), run over N Monte-Carlo days with daily variation. Defaults: 200 days · daily form jitter ±12% (each person's speed today vs. their average) · fixed random seed 42 for reproducibility. **Golden test vectors** generated from the University preset gate parity between the Python reference engine and any other implementation (workbench).
 
-**Validation anchor environment.** The session-validated reference band (baseline 185 ± 5 served / 43.3 ± 3.0 min wait; optimized 202 ± 5 / 26.2 ± 3.0; matching lever only, seed 42, 200 days) was produced in a different *environment* than the University preset, not by a different engine: an 08:00–16:00 day (480 minutes), door open to joins until close (last-join 0), no language-preference constraints, pure drop-in (appointment share 0), abandonment disabled. The preset itself keeps its 08:00–17:00 day, 30-minute last-join window and 5% Spanish-preference share, so preset outputs are not expected to match the anchor numbers. The anchor config is encoded in `engine/tests/test_golden.py::validation_config` and asserted on every test run.
+**Validation anchor environment.** The session-validated reference band (baseline 185 ± 5 served / 43.3 ± 3.0 min wait; optimized 202 ± 5 / 26.2 ± 3.0; matching lever only, seed 42, 200 days) was produced in a different *environment* than the University preset, not by a different engine: an 08:00–16:00 day (480 minutes), door open to joins until close (last-join 0), no language-preference constraints, pure drop-in (appointment share 0), abandonment disabled, demand pinned at 220/day (independent of any preset recalibration). The preset itself keeps its 08:00–17:00 day, 30-minute last-join window and 5% Spanish-preference share, so preset outputs are not expected to match the anchor numbers. The anchor config is encoded in `engine/tests/test_golden.py::validation_config` and asserted on every test run.
 
 ## 8. Presets
 
 | | University One-Stop (reference) | County DMV | Community Clinic |
 |---|---|---|---|
-| Demand/day | 220 | 320 | 180 |
+| Demand/day | 255 (recalibrated from 220, June 11 2026) | 400 (recalibrated from 320, June 11 2026) | 180 |
 | Surge | 11:00–13:00 ×2 | 8–10 ×1.8 + 12–13:30 ×1.6 | 8:30–10:30 ×1.7 + 15–16:30 ×1.5 |
 | Baseline appointment share | 20% | 10% | 60% |
 | Scheduling method | round-robin | capacity | employee-specific |
 | Punctuality (early / late OK / late acceptable) | 10 / 5 / 15 | 10 / 5 / 15 | 10 / 5 / 10 (stricter shop) |
-| Notes | Validated reference world; golden vectors | Ticket culture; protected Road Test | Appointment-led; grace window binds hardest |
+| Notes | Reference world; golden vectors; anchor pins 220/day independently | Ticket culture; protected Road Test; deflection trimmed to 0.10; in-office served target unreachable (see v1.2 log) | Appointment-led; punctuality binds hardest |
 
 ## 9. Out of scope (v1) / deferred
 
@@ -141,5 +141,6 @@ Service groups · multi-location · reason-based incomplete-reduction recommenda
 
 ## 10. Change log
 
+- **v1.2 — June 11, 2026.** Preset recalibration (scenario data only; engine/schemas/tests untouched). University demand 220 → 255/day; DMV demand 320 → 400/day with deflection trimmed 0.15 → 0.10 — both restore the oversubscribed-surge regime so the demo baseline shows visible pain and the optimized queue backfills deflected visits. University meets all calibration targets. DMV best-feasible: the in-office served target (combined ≥ baseline − 2%) is unreachable within scenario-data knobs at credible baseline waits — the smoothing no-show drain (~4% of demand) plus the 10% deflection floor exceeds baseline losses whenever baseline mean wait stays within 15–30 min; committed point trades a ~9% in-office served dip (plus ~40/day resolved digitally) for an in-band baseline. Validation anchor pins 220/day, unaffected.
 - **v1.1 — June 11, 2026.** Punctuality model: the symmetric appointment grace window is replaced by three customer-configurable inputs (early summon max / late OK / late acceptable); the binary on-time rate is replaced by a punctuality output block (pct on-time, pct acceptable, p50/p90/max lateness); guardrail scoped to the combined lever set with solo-lever degradations reported as warnings; kinked-convex CSAT lateness curve for appointments (shape grounded, steepness assumption until VE.12.01 data); validation anchor environment documented (§7).
 - **v1.0 — June 10, 2026.** Initial specification. Incorporates the June 10 working session: employee breaks (input + optional optimization lever), incomplete transactions (optional input, time-cost metric, prep linkage), abandonment (computed from predicted wait, conservative curve), levers reordered by impact, routing weights demoted to Advanced, and solo + combined + attribution reporting structure.

@@ -2,7 +2,7 @@
   "meta": {
     "scenario_name": "State University One-Stop — Semester-Start Surge",
     "schema_version": "1.0.0",
-    "notes": "Reference preset. Matches the validated reference world: 6 employees, 5 services, 220/day demand, midday surge x2, 80/20 drop-in/appointment baseline. Golden vectors are generated from this scenario at seed 42."
+    "notes": "Reference preset: 6 employees, 5 services, midday surge x2, 80/20 drop-in/appointment baseline. Golden vectors are generated from this scenario at seed 42. Recalibrated June 11, 2026: demand raised 220 -> 255/day to restore the oversubscribed-surge regime for demo credibility (baseline wait ~43 min, p90 ~105, ~18 abandonments/day; optimized in-office served holds within 2% of baseline while ~23/day resolve digitally). The validation anchor environment pins demand at 220/day independently of this preset."
   },
   "location": { "name": "One-Stop Student Services", "open": "08:00", "close": "17:00", "last_join_minutes_before_close": 30 },
   "services": [
@@ -39,7 +39,7 @@
       { "service_id": "AD", "efficiency": 1.10, "csat": 84 } ] }
   ],
   "demand": {
-    "visitors_per_day": 220,
+    "visitors_per_day": 255,
     "arrival_pattern": { "shape": "single_surge", "surges": [ { "start": "11:00", "end": "13:00", "multiplier": 2.0 } ] },
     "language_preferences": [ { "language": "es", "share": 0.05 } ]
   },
