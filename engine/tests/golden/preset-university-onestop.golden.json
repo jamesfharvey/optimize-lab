@@ -117,22 +117,10 @@
   ],
   "guardrail_warnings": [
     {
-      "lever": "matching",
-      "message": "Solo lever 'matching' degrades appointment p90 lateness vs baseline (0.0 -> 0.0 min). The combined lever set is the guardrail-gated configuration.",
-      "p90_lateness_baseline": 0.0,
-      "p90_lateness_solo": 0.005
-    },
-    {
       "lever": "appointment_smoothing",
       "message": "Solo lever 'appointment_smoothing' degrades appointment p90 lateness vs baseline (0.0 -> 1.2 min). The combined lever set is the guardrail-gated configuration.",
       "p90_lateness_baseline": 0.0,
       "p90_lateness_solo": 1.1813
-    },
-    {
-      "lever": "deflection",
-      "message": "Solo lever 'deflection' degrades appointment p90 lateness vs baseline (0.0 -> 0.0 min). The combined lever set is the guardrail-gated configuration.",
-      "p90_lateness_baseline": 0.0,
-      "p90_lateness_solo": 0.0006
     }
   ],
   "meta": {

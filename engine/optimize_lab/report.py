@@ -216,12 +216,13 @@ def build_report(sc: Scenario, mc: MCResult, deterministic: bool = False,
 
     # guardrail warnings: solo lever runs that worsen p90 summon lateness.
     # Warnings only — the hard punctuality guardrail applies to the combined
-    # set (asserted in tests, not here).
+    # set (asserted in tests, not here). Same 0.5-minute operational
+    # tolerance as the hard gate: sub-minute p90 shifts are noise.
     guardrail_warnings = []
     base_p90_late = float(np.mean(base["p90_late"]))
     for lv in sel:
         solo_p90 = float(np.mean(mc.arrays[frozenset([lv])]["p90_late"]))
-        if solo_p90 > base_p90_late + 1e-9:
+        if solo_p90 > base_p90_late + 0.5:
             guardrail_warnings.append({
                 "lever": lv,
                 "p90_lateness_baseline": base_p90_late,
