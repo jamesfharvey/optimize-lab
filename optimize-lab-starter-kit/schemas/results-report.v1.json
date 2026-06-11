@@ -1,0 +1,285 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "optimize-lab/schemas/results-report.v1.json",
+  "title": "ResultsReport",
+  "description": "Output contract for one optimize-lab run: baseline vs optimized with per-lever attribution. Version 1.0.0",
+  "type": "object",
+  "required": [
+    "meta",
+    "metrics",
+    "waterfall"
+  ],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": [
+        "scenario_name",
+        "schema_version",
+        "engine_version",
+        "random_seed",
+        "monte_carlo_days"
+      ],
+      "properties": {
+        "scenario_name": {
+          "type": "string"
+        },
+        "customer": {
+          "type": "string"
+        },
+        "schema_version": {
+          "type": "string"
+        },
+        "engine_version": {
+          "type": "string",
+          "description": "Git tag/commit of the engine that produced this report"
+        },
+        "random_seed": {
+          "type": "integer"
+        },
+        "monte_carlo_days": {
+          "type": "integer"
+        },
+        "generated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "description": "The five core metrics. Each reported for baseline and optimized with delta and 95% CI (when monte_carlo_days > 1).",
+      "required": [
+        "mean_wait_min",
+        "p90_wait_min",
+        "served_per_day",
+        "turned_away_per_day",
+        "mean_csat"
+      ],
+      "properties": {
+        "mean_wait_min": {
+          "$ref": "#/$defs/metricComparison"
+        },
+        "p90_wait_min": {
+          "$ref": "#/$defs/metricComparison"
+        },
+        "served_per_day": {
+          "$ref": "#/$defs/metricComparison"
+        },
+        "turned_away_per_day": {
+          "$ref": "#/$defs/metricComparison"
+        },
+        "mean_csat": {
+          "$ref": "#/$defs/metricComparison",
+          "description": "0\u2013100 scale; report also includes csat_5pt convenience translation"
+        },
+        "makespan_min": {
+          "$ref": "#/$defs/metricComparison",
+          "description": "Optional: time to clear after close"
+        },
+        "appointments_on_time_rate": {
+          "$ref": "#/$defs/metricComparison",
+          "description": "Share of appointments summoned within grace window \u2014 guardrail metric, must not degrade"
+        },
+        "resolved_digitally_per_day": {
+          "type": "number",
+          "description": "Deflected demand served outside the office; reported separately, never blended into served_per_day"
+        },
+        "incomplete_time_cost_min_per_day": {
+          "type": "number",
+          "description": "Employee-minutes/day consumed by incomplete transactions"
+        },
+        "abandoned_per_day": {
+          "$ref": "#/$defs/metricComparison",
+          "description": "Visitors who left without service (function of wait)"
+        }
+      }
+    },
+    "waterfall": {
+      "type": "array",
+      "description": "Cumulative view in canonical order (optional display); per_lever_impact + attribution are the primary independent-lever readout.",
+      "items": {
+        "type": "object",
+        "required": [
+          "step",
+          "label",
+          "levers_active",
+          "served_per_day",
+          "mean_wait_min"
+        ],
+        "properties": {
+          "step": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string",
+            "description": "e.g. '+ AI matching & routing'"
+          },
+          "levers_active": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "served_per_day": {
+            "type": "number"
+          },
+          "mean_wait_min": {
+            "type": "number"
+          },
+          "p90_wait_min": {
+            "type": "number"
+          },
+          "mean_csat": {
+            "type": "number"
+          },
+          "delta_vs_baseline_pct": {
+            "type": "object",
+            "properties": {
+              "served_per_day": {
+                "type": "number"
+              },
+              "mean_wait_min": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "focus_recommendation": {
+      "type": "array",
+      "description": "The actionable output for managers: per-employee focus assignment under the optimized policy.",
+      "items": {
+        "type": "object",
+        "required": [
+          "employee_id",
+          "qualified_services",
+          "focus_services"
+        ],
+        "properties": {
+          "employee_id": {
+            "type": "string"
+          },
+          "qualified_services": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "focus_services": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Plain-language, grounded in efficiency data only (AI Content Principles)"
+          }
+        }
+      }
+    },
+    "assumption_flags": {
+      "type": "array",
+      "description": "Every assumption-flagged lever active in this run, restated so no report ships without its caveats.",
+      "items": {
+        "type": "object",
+        "required": [
+          "lever",
+          "assumed_value",
+          "caveat"
+        ],
+        "properties": {
+          "lever": {
+            "type": "string"
+          },
+          "assumed_value": {
+            "type": "number"
+          },
+          "caveat": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "raw_data_ref": {
+      "type": "string",
+      "description": "Path/URL to per-visitor CSV export (the audit trail), if generated"
+    },
+    "per_lever_impact": {
+      "type": "array",
+      "description": "Each SELECTED lever run solo against baseline.",
+      "items": {
+        "type": "object",
+        "required": [
+          "lever",
+          "served_per_day_delta_pct",
+          "mean_wait_delta_pct"
+        ],
+        "properties": {
+          "lever": {
+            "type": "string"
+          },
+          "served_per_day_delta_pct": {
+            "type": "number"
+          },
+          "mean_wait_delta_pct": {
+            "type": "number"
+          },
+          "p90_wait_delta_pct": {
+            "type": "number"
+          },
+          "mean_csat_delta_pts": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "attribution": {
+      "type": "array",
+      "description": "Share of the COMBINED gain contributed by each selected lever (sums ~100%).",
+      "items": {
+        "type": "object",
+        "required": [
+          "lever",
+          "share_of_combined_gain"
+        ],
+        "properties": {
+          "lever": {
+            "type": "string"
+          },
+          "share_of_combined_gain": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "metricComparison": {
+      "type": "object",
+      "required": [
+        "baseline",
+        "optimized"
+      ],
+      "properties": {
+        "baseline": {
+          "type": "number"
+        },
+        "optimized": {
+          "type": "number"
+        },
+        "delta_pct": {
+          "type": "number"
+        },
+        "ci95_low": {
+          "type": "number",
+          "description": "95% CI bound on delta_pct"
+        },
+        "ci95_high": {
+          "type": "number"
+        }
+      }
+    }
+  }
+}

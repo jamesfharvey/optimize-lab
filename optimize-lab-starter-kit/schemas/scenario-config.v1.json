@@ -1,0 +1,542 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "optimize-lab/schemas/scenario-config.v1.json",
+  "title": "ScenarioConfig",
+  "description": "Complete input contract for one optimize-lab simulation scenario. A customer engagement = one file conforming to this schema. Version: 1.0.0",
+  "type": "object",
+  "required": [
+    "meta",
+    "location",
+    "services",
+    "employees",
+    "demand",
+    "policy",
+    "simulation"
+  ],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": [
+        "scenario_name",
+        "schema_version"
+      ],
+      "properties": {
+        "scenario_name": {
+          "type": "string",
+          "description": "Human label, e.g. 'State University One-Stop \u2014 Fall Surge'"
+        },
+        "customer": {
+          "type": "string",
+          "description": "Customer name for branded reports; omit for presets"
+        },
+        "schema_version": {
+          "type": "string",
+          "const": "1.0.0"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "location": {
+      "type": "object",
+      "description": "Single location (v1). Operating hours bound the simulated day.",
+      "required": [
+        "open",
+        "close"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "open": {
+          "type": "string",
+          "pattern": "^\\d{2}:\\d{2}$",
+          "description": "e.g. 08:00"
+        },
+        "close": {
+          "type": "string",
+          "pattern": "^\\d{2}:\\d{2}$",
+          "description": "e.g. 17:00"
+        },
+        "last_join_minutes_before_close": {
+          "type": "integer",
+          "default": 30,
+          "description": "Door closes to new joins this many minutes before close"
+        }
+      }
+    },
+    "services": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Service catalog. No service groups in v1.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "target_duration_min",
+          "demand_share"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Short code, e.g. 'FA'"
+          },
+          "name": {
+            "type": "string"
+          },
+          "target_duration_min": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Org-declared target duration. Efficiency is measured against this."
+          },
+          "demand_share": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Fraction of total demand requesting this service; shares must sum to 1"
+          },
+          "appointment_eligible": {
+            "type": "boolean",
+            "default": true,
+            "description": "If false, service is drop-in only"
+          },
+          "incomplete_rate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 0.5,
+            "description": "OPTIONAL. Historical fraction of started services marked incomplete (ID/docs/wrong service/fee refusal). Consumes employee time; prep_in_queue reduces it."
+          }
+        }
+      }
+    },
+    "employees": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "profile"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "work_start": {
+            "type": "string",
+            "pattern": "^\\d{2}:\\d{2}$",
+            "description": "Defaults to location.open"
+          },
+          "work_end": {
+            "type": "string",
+            "pattern": "^\\d{2}:\\d{2}$",
+            "description": "Defaults to location.close"
+          },
+          "languages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "Beyond org default, e.g. ['es']"
+          },
+          "profile": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Services this employee can deliver, with per-service performance. THIS MATRIX IS THE MODEL'S CORE NET-NEW DATA.",
+            "items": {
+              "type": "object",
+              "required": [
+                "service_id",
+                "efficiency"
+              ],
+              "properties": {
+                "service_id": {
+                  "type": "string"
+                },
+                "efficiency": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "description": "target_duration / employee's actual avg duration. 2.0 = twice as fast as target; 0.8 = 20% slower. Effective duration = target / (efficiency \u00d7 daily form)."
+                },
+                "csat": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100,
+                  "description": "Employee's historical CSAT for this service (0\u2013100). Source: VE.12.01 once live; estimate until then."
+                }
+              }
+            }
+          },
+          "break_window": {
+            "type": "object",
+            "description": "Default daily break. Staggered across staff; treated as a HARD constraint (no summoning during break, even in surge).",
+            "properties": {
+              "start": {
+                "type": "string",
+                "pattern": "^\\d{2}:\\d{2}$"
+              },
+              "end": {
+                "type": "string",
+                "pattern": "^\\d{2}:\\d{2}$"
+              },
+              "variability_min": {
+                "type": "integer",
+                "default": 15,
+                "description": "Real-world +/- shift tolerance (trades happen)"
+              }
+            }
+          }
+        }
+      }
+    },
+    "demand": {
+      "type": "object",
+      "required": [
+        "visitors_per_day",
+        "arrival_pattern"
+      ],
+      "properties": {
+        "visitors_per_day": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Total daily demand (arrivals attempting service)"
+        },
+        "visitors_per_day_range": {
+          "type": "object",
+          "description": "Optional day-to-day variation for Monte Carlo; if present, each simulated day draws uniformly from [low, high] and visitors_per_day is the nominal/reporting value.",
+          "properties": {
+            "low": {
+              "type": "integer"
+            },
+            "high": {
+              "type": "integer"
+            }
+          }
+        },
+        "arrival_pattern": {
+          "type": "object",
+          "required": [
+            "shape"
+          ],
+          "properties": {
+            "shape": {
+              "type": "string",
+              "enum": [
+                "uniform",
+                "single_surge",
+                "double_surge",
+                "custom"
+              ]
+            },
+            "surges": {
+              "type": "array",
+              "description": "For single/double surge: time windows where arrival rate is multiplied.",
+              "items": {
+                "type": "object",
+                "required": [
+                  "start",
+                  "end",
+                  "multiplier"
+                ],
+                "properties": {
+                  "start": {
+                    "type": "string",
+                    "pattern": "^\\d{2}:\\d{2}$"
+                  },
+                  "end": {
+                    "type": "string",
+                    "pattern": "^\\d{2}:\\d{2}$"
+                  },
+                  "multiplier": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "description": "e.g. 2.0 = double the base rate"
+                  }
+                }
+              }
+            },
+            "custom_hourly_weights": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "description": "For shape=custom: one relative weight per operating hour"
+            }
+          }
+        },
+        "language_preferences": {
+          "type": "array",
+          "description": "Share of visitors requiring a specific language match.",
+          "items": {
+            "type": "object",
+            "required": [
+              "language",
+              "share"
+            ],
+            "properties": {
+              "language": {
+                "type": "string"
+              },
+              "share": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          },
+          "default": []
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "description": "The operating rules being compared. 'baseline' describes the customer today; 'optimized' describes the lever stack to test.",
+      "required": [
+        "baseline",
+        "optimized"
+      ],
+      "properties": {
+        "baseline": {
+          "type": "object",
+          "required": [
+            "appointment_share"
+          ],
+          "properties": {
+            "appointment_share": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Fraction of demand arriving as appointments TODAY. 0 = pure drop-in shop. Default mixed shop: 0.20."
+            },
+            "scheduling_method": {
+              "type": "string",
+              "enum": [
+                "capacity",
+                "round_robin",
+                "employee_specific"
+              ],
+              "default": "round_robin",
+              "description": "How appointments pair with employees. capacity/round_robin = pairing at summon; employee_specific = pinned at booking."
+            },
+            "appointment_grace_min": {
+              "type": "integer",
+              "default": 10,
+              "description": "On-time-start window: appointment must be summoned within \u00b1 this many minutes of scheduled time (Analytics '01 - Wait Time' definition)"
+            },
+            "appointment_distribution": {
+              "type": "string",
+              "enum": [
+                "even",
+                "match_arrival_pattern"
+              ],
+              "default": "even",
+              "description": "How booked appointment times spread across the day"
+            }
+          }
+        },
+        "optimized": {
+          "type": "object",
+          "description": "Optimization levers in expected-impact order: matching, appointment_smoothing, prep_in_queue, deflection, running_late, break_scheduling. Each independently toggleable; results report solo impact per lever, combined impact of the selected set, and attribution. Routing weights are ADVANCED settings.",
+          "properties": {
+            "matching": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Comparative-advantage focus + blended routing"
+                },
+                "aging_cap_min": {
+                  "type": "integer",
+                  "default": 45,
+                  "description": "Hard fairness guard: any visitor waiting beyond this is summoned next regardless of score"
+                },
+                "weights": {
+                  "type": "object",
+                  "description": "Routing score weights; must sum to 1. Advanced setting \u2014 presets preferred.",
+                  "properties": {
+                    "throughput": {
+                      "type": "number",
+                      "default": 0.6
+                    },
+                    "wait": {
+                      "type": "number",
+                      "default": 0.4
+                    },
+                    "csat": {
+                      "type": "number",
+                      "default": 0.0
+                    }
+                  }
+                },
+                "weight_preset": {
+                  "type": "string",
+                  "enum": [
+                    "wait_dominant",
+                    "balanced",
+                    "fairness_first"
+                  ],
+                  "default": "wait_dominant",
+                  "description": "wait_dominant=0.6/0.4/0.0; balanced=0.34/0.33/0.33; fairness_first=0.0/0.9/0.1. Explicit weights override the preset."
+                }
+              }
+            },
+            "appointment_smoothing": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false
+                },
+                "target_appointment_share": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "default": 0.75,
+                  "description": "Lever: shift demand from walk-in surge into evenly spread appointments up to this share"
+                }
+              }
+            },
+            "prep_in_queue": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false
+                },
+                "duration_reduction": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 0.5,
+                  "default": 0.15,
+                  "description": "ASSUMPTION FLAG: fraction of service duration removed by pre-arrival intake. Validate against real visit anatomy per customer."
+                },
+                "incomplete_reduction": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "default": 0.5,
+                  "description": "ASSUMPTION FLAG: fraction of would-be incompletes caught by pre-arrival prep (default 0.5 = midpoint of 40-60%)."
+                }
+              }
+            },
+            "deflection": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false
+                },
+                "rate": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 0.5,
+                  "default": 0.1,
+                  "description": "ASSUMPTION FLAG: fraction of visits resolved before arrival (self-service). Removed from demand; reported separately as 'resolved digitally'."
+                }
+              }
+            },
+            "running_late": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false
+                },
+                "no_show_reduction": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
+                  "default": 0.15,
+                  "description": "Maps to VE.11.01. Fraction of would-be no-shows converted to served visits."
+                }
+              }
+            },
+            "break_scheduling": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "OPTIONAL lever: recommend a break stagger pattern fitted to the day's demand shape; reports impact like any other lever."
+                }
+              }
+            }
+          }
+        },
+        "no_show_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.08,
+          "description": "Baseline appointment no-show rate; applies to both policies unless running_late modifies it"
+        }
+      }
+    },
+    "simulation": {
+      "type": "object",
+      "properties": {
+        "monte_carlo_days": {
+          "type": "integer",
+          "default": 200,
+          "minimum": 1
+        },
+        "daily_form_jitter": {
+          "type": "number",
+          "default": 0.12,
+          "minimum": 0,
+          "maximum": 0.4,
+          "description": "Std-dev of per-day multiplier on each employee\u00d7service efficiency (today vs average)"
+        },
+        "random_seed": {
+          "type": "integer",
+          "default": 42,
+          "description": "Fixed seed = reproducible demos and golden vectors"
+        },
+        "csat_model": {
+          "type": "object",
+          "description": "Predicted-CSAT formula parameters: base \u00d7 W_wait \u00d7 W_accuracy \u00d7 W_duration",
+          "properties": {
+            "alpha_wait": {
+              "type": "number",
+              "default": 0.6
+            },
+            "beta_accuracy": {
+              "type": "number",
+              "default": 0.4
+            },
+            "gamma_duration": {
+              "type": "number",
+              "default": 0.3
+            }
+          }
+        },
+        "abandonment_model": {
+          "type": "object",
+          "description": "Abandonment computed as a function of predicted wait (throughput-only effect). Conservative v1 curve.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "curve": {
+              "type": "string",
+              "enum": [
+                "conservative_v1"
+              ],
+              "default": "conservative_v1",
+              "description": "~2% at <=15 min rising to a 12-15% ceiling at 90+ min"
+            }
+          }
+        }
+      }
+    }
+  }
+}

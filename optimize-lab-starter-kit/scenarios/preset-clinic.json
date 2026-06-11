@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "scenario_name": "Community Health Clinic — Appointment-Led with Walk-Ins",
+    "schema_version": "1.0.0",
+    "notes": "Appointment-heavy shop (60% baseline) with walk-in overflow; tests the model where appointments dominate and the grace window binds hardest."
+  },
+  "location": { "name": "Community Health Clinic", "open": "08:00", "close": "17:00", "last_join_minutes_before_close": 60 },
+  "services": [
+    { "id": "NV", "name": "New Patient Visit",   "target_duration_min": 40, "demand_share": 0.15 },
+    { "id": "FU", "name": "Follow-Up",           "target_duration_min": 20, "demand_share": 0.30 },
+    { "id": "VX", "name": "Vaccination",         "target_duration_min": 8,  "demand_share": 0.25 },
+    { "id": "LB", "name": "Lab Draw",            "target_duration_min": 10, "demand_share": 0.20 },
+    { "id": "CS", "name": "Care Coordination",   "target_duration_min": 30, "demand_share": 0.10 }
+  ],
+  "employees": [
+    { "id": "E1", "name": "Dr. Park", "profile": [
+      { "service_id": "NV", "efficiency": 1.20, "csat": 93 },
+      { "service_id": "FU", "efficiency": 1.30, "csat": 91 } ] },
+    { "id": "E2", "name": "Dr. Osei", "profile": [
+      { "service_id": "NV", "efficiency": 1.00, "csat": 89 },
+      { "service_id": "FU", "efficiency": 1.40, "csat": 92 },
+      { "service_id": "CS", "efficiency": 0.90, "csat": 80 } ] },
+    { "id": "E3", "name": "NP Rivera", "languages": ["es"], "profile": [
+      { "service_id": "FU", "efficiency": 1.20, "csat": 90 },
+      { "service_id": "VX", "efficiency": 1.10, "csat": 86 },
+      { "service_id": "CS", "efficiency": 1.20, "csat": 88 } ] },
+    { "id": "E4", "name": "RN Chen", "profile": [
+      { "service_id": "VX", "efficiency": 1.50, "csat": 92 },
+      { "service_id": "LB", "efficiency": 1.30, "csat": 88 } ] },
+    { "id": "E5", "name": "RN Brooks", "profile": [
+      { "service_id": "LB", "efficiency": 1.50, "csat": 91 },
+      { "service_id": "VX", "efficiency": 1.20, "csat": 87 } ] },
+    { "id": "E6", "name": "MA Silva", "languages": ["es"], "profile": [
+      { "service_id": "VX", "efficiency": 1.30, "csat": 89 },
+      { "service_id": "LB", "efficiency": 1.10, "csat": 84 },
+      { "service_id": "CS", "efficiency": 1.00, "csat": 82 } ] },
+    { "id": "E7", "name": "SW Adams", "profile": [
+      { "service_id": "CS", "efficiency": 1.40, "csat": 93 },
+      { "service_id": "FU", "efficiency": 0.90, "csat": 79 } ] }
+  ],
+  "demand": {
+    "visitors_per_day": 180,
+    "arrival_pattern": { "shape": "double_surge", "surges": [
+      { "start": "08:30", "end": "10:30", "multiplier": 1.7 },
+      { "start": "15:00", "end": "16:30", "multiplier": 1.5 } ] },
+    "language_preferences": [ { "language": "es", "share": 0.18 } ]
+  },
+  "policy": {
+    "baseline": { "appointment_share": 0.60, "scheduling_method": "employee_specific", "appointment_grace_min": 5, "appointment_distribution": "match_arrival_pattern" },
+    "optimized": {
+      "matching": { "enabled": true, "aging_cap_min": 40, "weight_preset": "wait_dominant" },
+      "appointment_smoothing": { "enabled": true, "target_appointment_share": 0.80 },
+      "prep_in_queue": { "enabled": true, "duration_reduction": 0.18 },
+      "deflection": { "enabled": false, "rate": 0.0 },
+      "running_late": { "enabled": true, "no_show_reduction": 0.20 }
+    },
+    "no_show_rate": 0.15
+  },
+  "simulation": { "monte_carlo_days": 200, "daily_form_jitter": 0.12, "random_seed": 42 }
+}

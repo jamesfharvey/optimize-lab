@@ -1,0 +1,58 @@
+{
+  "meta": {
+    "scenario_name": "State University One-Stop — Semester-Start Surge",
+    "schema_version": "1.0.0",
+    "notes": "Reference preset. Matches the validated reference world: 6 employees, 5 services, 220/day demand, midday surge x2, 80/20 drop-in/appointment baseline. Golden vectors are generated from this scenario at seed 42."
+  },
+  "location": { "name": "One-Stop Student Services", "open": "08:00", "close": "17:00", "last_join_minutes_before_close": 30 },
+  "services": [
+    { "id": "CA", "name": "Cashier",        "target_duration_min": 5,  "demand_share": 0.278 },
+    { "id": "RG", "name": "Registrar",      "target_duration_min": 10, "demand_share": 0.222 },
+    { "id": "AD", "name": "Admissions",     "target_duration_min": 20, "demand_share": 0.222 },
+    { "id": "FA", "name": "Financial Aid",  "target_duration_min": 30, "demand_share": 0.167 },
+    { "id": "AV", "name": "Advising",       "target_duration_min": 40, "demand_share": 0.111 }
+  ],
+  "employees": [
+    { "id": "E1", "name": "Maria", "languages": ["es"], "profile": [
+      { "service_id": "FA", "efficiency": 1.40, "csat": 92 },
+      { "service_id": "AD", "efficiency": 1.00, "csat": 80 },
+      { "service_id": "CA", "efficiency": 0.80, "csat": 75 } ] },
+    { "id": "E2", "name": "Diego", "languages": ["es"], "profile": [
+      { "service_id": "AD", "efficiency": 1.30, "csat": 88 },
+      { "service_id": "RG", "efficiency": 1.10, "csat": 82 },
+      { "service_id": "CA", "efficiency": 1.20, "csat": 85 } ] },
+    { "id": "E3", "name": "John", "profile": [
+      { "service_id": "AV", "efficiency": 1.30, "csat": 90 },
+      { "service_id": "RG", "efficiency": 1.00, "csat": 78 },
+      { "service_id": "CA", "efficiency": 1.50, "csat": 80 } ] },
+    { "id": "E4", "name": "Aisha", "profile": [
+      { "service_id": "FA", "efficiency": 0.90, "csat": 78 },
+      { "service_id": "CA", "efficiency": 1.60, "csat": 90 },
+      { "service_id": "RG", "efficiency": 1.20, "csat": 85 } ] },
+    { "id": "E5", "name": "Tom", "profile": [
+      { "service_id": "AV", "efficiency": 1.50, "csat": 94 },
+      { "service_id": "AD", "efficiency": 0.90, "csat": 76 },
+      { "service_id": "FA", "efficiency": 1.10, "csat": 82 } ] },
+    { "id": "E6", "name": "Lena", "profile": [
+      { "service_id": "CA", "efficiency": 1.40, "csat": 88 },
+      { "service_id": "RG", "efficiency": 1.30, "csat": 90 },
+      { "service_id": "AD", "efficiency": 1.10, "csat": 84 } ] }
+  ],
+  "demand": {
+    "visitors_per_day": 220,
+    "arrival_pattern": { "shape": "single_surge", "surges": [ { "start": "11:00", "end": "13:00", "multiplier": 2.0 } ] },
+    "language_preferences": [ { "language": "es", "share": 0.05 } ]
+  },
+  "policy": {
+    "baseline": { "appointment_share": 0.20, "scheduling_method": "round_robin", "appointment_grace_min": 10, "appointment_distribution": "even" },
+    "optimized": {
+      "matching": { "enabled": true, "aging_cap_min": 45, "weight_preset": "wait_dominant" },
+      "appointment_smoothing": { "enabled": true, "target_appointment_share": 0.75 },
+      "prep_in_queue": { "enabled": true, "duration_reduction": 0.15 },
+      "deflection": { "enabled": true, "rate": 0.10 },
+      "running_late": { "enabled": true, "no_show_reduction": 0.15 }
+    },
+    "no_show_rate": 0.08
+  },
+  "simulation": { "monte_carlo_days": 200, "daily_form_jitter": 0.12, "random_seed": 42 }
+}

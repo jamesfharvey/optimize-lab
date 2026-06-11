@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "scenario_name": "County DMV — High-Volume Transactional Office",
+    "schema_version": "1.0.0",
+    "notes": "Ticket-culture office: mostly drop-in, short transactional services, protected long-duration Road Test. Lower appointment share, morning surge."
+  },
+  "location": { "name": "County DMV Office", "open": "08:00", "close": "17:00", "last_join_minutes_before_close": 45 },
+  "services": [
+    { "id": "LR", "name": "License Renewal",      "target_duration_min": 8,  "demand_share": 0.30 },
+    { "id": "VR", "name": "Vehicle Registration", "target_duration_min": 10, "demand_share": 0.25 },
+    { "id": "ID", "name": "ID Issuance",          "target_duration_min": 12, "demand_share": 0.18 },
+    { "id": "WT", "name": "Written Test",         "target_duration_min": 25, "demand_share": 0.12 },
+    { "id": "TT", "name": "Title Transfer",       "target_duration_min": 15, "demand_share": 0.10 },
+    { "id": "RT", "name": "Road Test",            "target_duration_min": 20, "demand_share": 0.05, "appointment_eligible": true }
+  ],
+  "employees": [
+    { "id": "E1", "name": "Carlos", "languages": ["es"], "profile": [
+      { "service_id": "LR", "efficiency": 1.30, "csat": 86 },
+      { "service_id": "VR", "efficiency": 1.20, "csat": 84 },
+      { "service_id": "ID", "efficiency": 1.10, "csat": 82 } ] },
+    { "id": "E2", "name": "Denise", "profile": [
+      { "service_id": "LR", "efficiency": 1.50, "csat": 90 },
+      { "service_id": "ID", "efficiency": 1.30, "csat": 88 },
+      { "service_id": "TT", "efficiency": 0.90, "csat": 76 } ] },
+    { "id": "E3", "name": "Frank", "profile": [
+      { "service_id": "VR", "efficiency": 1.40, "csat": 87 },
+      { "service_id": "TT", "efficiency": 1.30, "csat": 89 },
+      { "service_id": "LR", "efficiency": 1.00, "csat": 80 } ] },
+    { "id": "E4", "name": "Gloria", "languages": ["es"], "profile": [
+      { "service_id": "WT", "efficiency": 1.20, "csat": 85 },
+      { "service_id": "ID", "efficiency": 1.20, "csat": 86 },
+      { "service_id": "VR", "efficiency": 0.90, "csat": 78 } ] },
+    { "id": "E5", "name": "Hank", "profile": [
+      { "service_id": "RT", "efficiency": 1.10, "csat": 91 },
+      { "service_id": "WT", "efficiency": 1.00, "csat": 82 } ] },
+    { "id": "E6", "name": "Irene", "profile": [
+      { "service_id": "RT", "efficiency": 1.30, "csat": 93 },
+      { "service_id": "LR", "efficiency": 1.10, "csat": 83 } ] },
+    { "id": "E7", "name": "Jamal", "profile": [
+      { "service_id": "TT", "efficiency": 1.40, "csat": 90 },
+      { "service_id": "VR", "efficiency": 1.10, "csat": 84 },
+      { "service_id": "WT", "efficiency": 0.90, "csat": 77 } ] },
+    { "id": "E8", "name": "Kim", "profile": [
+      { "service_id": "ID", "efficiency": 1.50, "csat": 91 },
+      { "service_id": "LR", "efficiency": 1.20, "csat": 85 },
+      { "service_id": "TT", "efficiency": 1.00, "csat": 81 } ] }
+  ],
+  "demand": {
+    "visitors_per_day": 320,
+    "arrival_pattern": { "shape": "double_surge", "surges": [
+      { "start": "08:00", "end": "10:00", "multiplier": 1.8 },
+      { "start": "12:00", "end": "13:30", "multiplier": 1.6 } ] },
+    "language_preferences": [ { "language": "es", "share": 0.12 } ]
+  },
+  "policy": {
+    "baseline": { "appointment_share": 0.10, "scheduling_method": "capacity", "appointment_grace_min": 10, "appointment_distribution": "even" },
+    "optimized": {
+      "matching": { "enabled": true, "aging_cap_min": 45, "weight_preset": "wait_dominant" },
+      "appointment_smoothing": { "enabled": true, "target_appointment_share": 0.50 },
+      "prep_in_queue": { "enabled": true, "duration_reduction": 0.12 },
+      "deflection": { "enabled": true, "rate": 0.15 },
+      "running_late": { "enabled": true, "no_show_reduction": 0.15 }
+    },
+    "no_show_rate": 0.10
+  },
+  "simulation": { "monte_carlo_days": 200, "daily_form_jitter": 0.12, "random_seed": 42 }
+}
