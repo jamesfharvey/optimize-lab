@@ -11,6 +11,26 @@
       "lever": "prep_in_queue.incomplete_reduction"
     },
     {
+      "assumed_value": 10.0,
+      "caveat": "v1.5 absolute-wait disutility (W_time, walk-ins only): constant is an assumption until VE.12.01 ratings allow fitting the wait-vs-satisfaction curve per customer.",
+      "lever": "csat_model.wait_free_min"
+    },
+    {
+      "assumed_value": 60.0,
+      "caveat": "v1.5 absolute-wait disutility (W_time, walk-ins only): constant is an assumption until VE.12.01 ratings allow fitting the wait-vs-satisfaction curve per customer.",
+      "lever": "csat_model.wait_ref_min"
+    },
+    {
+      "assumed_value": 0.25,
+      "caveat": "v1.5 absolute-wait disutility (W_time, walk-ins only): constant is an assumption until VE.12.01 ratings allow fitting the wait-vs-satisfaction curve per customer.",
+      "lever": "csat_model.delta_wait"
+    },
+    {
+      "assumed_value": 0.5,
+      "caveat": "v1.5 absolute-wait disutility (W_time, walk-ins only): constant is an assumption until VE.12.01 ratings allow fitting the wait-vs-satisfaction curve per customer.",
+      "lever": "csat_model.time_floor"
+    },
+    {
       "assumed_value": 0.02,
       "caveat": "Assumed fraction of visits resolved digitally before arrival; reported separately, never blended into served. Validate per customer.",
       "lever": "deflection.rate"
@@ -156,7 +176,7 @@
     },
     "csat_5pt": {
       "baseline": 4.0,
-      "optimized": 4.1284
+      "optimized": 4.529
     },
     "incomplete_time_cost_min_per_day": 0.0,
     "makespan_min": {
@@ -167,11 +187,11 @@
       "optimized": 10.6101
     },
     "mean_csat": {
-      "baseline": 82.3272,
-      "ci95_high": 2.0356,
-      "ci95_low": 1.7216,
-      "delta_pct": 1.8786,
-      "optimized": 83.8738
+      "baseline": 70.4494,
+      "ci95_high": 17.0924,
+      "ci95_low": 16.0113,
+      "delta_pct": 16.5519,
+      "optimized": 82.1101
     },
     "mean_wait_min": {
       "baseline": 42.8156,
@@ -206,35 +226,35 @@
   "per_lever_impact": [
     {
       "lever": "matching",
-      "mean_csat_delta_pts": 0.3548,
+      "mean_csat_delta_pts": 5.2951,
       "mean_wait_delta_pct": -33.1159,
       "p90_wait_delta_pct": -15.0875,
       "served_per_day_delta_pct": 5.7219
     },
     {
       "lever": "appointment_smoothing",
-      "mean_csat_delta_pts": 0.8031,
+      "mean_csat_delta_pts": 9.2582,
       "mean_wait_delta_pct": -54.9074,
       "p90_wait_delta_pct": -50.0667,
       "served_per_day_delta_pct": 3.1752
     },
     {
       "lever": "prep_in_queue",
-      "mean_csat_delta_pts": 1.238,
+      "mean_csat_delta_pts": 6.6579,
       "mean_wait_delta_pct": -42.34,
       "p90_wait_delta_pct": -40.1229,
       "served_per_day_delta_pct": 10.2682
     },
     {
       "lever": "deflection",
-      "mean_csat_delta_pts": -0.0047,
+      "mean_csat_delta_pts": 0.6201,
       "mean_wait_delta_pct": -5.0171,
       "p90_wait_delta_pct": -5.2255,
       "served_per_day_delta_pct": -0.4307
     },
     {
       "lever": "running_late",
-      "mean_csat_delta_pts": 0.0429,
+      "mean_csat_delta_pts": -0.0338,
       "mean_wait_delta_pct": 0.5984,
       "p90_wait_delta_pct": 0.7041,
       "served_per_day_delta_pct": 0.1513
@@ -244,7 +264,7 @@
     {
       "label": "Baseline (FIFO, as run today)",
       "levers_active": [],
-      "mean_csat": 82.3272,
+      "mean_csat": 70.4494,
       "mean_wait_min": 42.8156,
       "p90_wait_min": 104.8705,
       "served_per_day": 214.79,
@@ -259,7 +279,7 @@
       "levers_active": [
         "matching"
       ],
-      "mean_csat": 82.682,
+      "mean_csat": 75.7446,
       "mean_wait_min": 28.6369,
       "p90_wait_min": 89.0482,
       "served_per_day": 227.08,
@@ -275,7 +295,7 @@
         "matching",
         "appointment_smoothing"
       ],
-      "mean_csat": 83.193,
+      "mean_csat": 79.9596,
       "mean_wait_min": 18.269,
       "p90_wait_min": 45.0699,
       "served_per_day": 223.06,
@@ -292,7 +312,7 @@
         "appointment_smoothing",
         "prep_in_queue"
       ],
-      "mean_csat": 83.8907,
+      "mean_csat": 82.0276,
       "mean_wait_min": 9.2914,
       "p90_wait_min": 18.8878,
       "served_per_day": 233.885,
@@ -310,7 +330,7 @@
         "prep_in_queue",
         "deflection"
       ],
-      "mean_csat": 83.9022,
+      "mean_csat": 82.1886,
       "mean_wait_min": 8.4345,
       "p90_wait_min": 16.7956,
       "served_per_day": 229.82,
@@ -329,7 +349,7 @@
         "deflection",
         "running_late"
       ],
-      "mean_csat": 83.8738,
+      "mean_csat": 82.1101,
       "mean_wait_min": 8.7453,
       "p90_wait_min": 17.4363,
       "served_per_day": 231.81,

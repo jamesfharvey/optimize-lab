@@ -7,7 +7,7 @@
     "csat_5pt": 4.0,
     "incomplete_time_cost_min_per_day": 0.0,
     "makespan_min": 3.292,
-    "mean_csat": 84.2294,
+    "mean_csat": 77.3102,
     "mean_wait_min": 28.0085,
     "p90_wait_min": 51.4867,
     "resolved_digitally_per_day": 0.0,

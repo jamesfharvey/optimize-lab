@@ -7,10 +7,10 @@
   ],
   "metrics": {
     "abandoned_per_day": 1.37,
-    "csat_5pt": 3.7258,
+    "csat_5pt": 3.9249,
     "incomplete_time_cost_min_per_day": 0.0,
     "makespan_min": 18.4791,
-    "mean_csat": 83.4279,
+    "mean_csat": 82.261,
     "mean_wait_min": 11.1233,
     "p90_wait_min": 30.3612,
     "resolved_digitally_per_day": 0.0,
@@ -31,9 +31,9 @@
       "delta_pct": -50.3623
     },
     "mean_csat": {
-      "ci95_high": -2.4472,
-      "ci95_low": -3.309,
-      "delta_pct": -2.8781
+      "ci95_high": -0.573,
+      "ci95_low": -1.4383,
+      "delta_pct": -1.0056
     },
     "mean_wait": {
       "ci95_high": -17.314,
