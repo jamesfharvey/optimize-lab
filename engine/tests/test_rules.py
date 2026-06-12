@@ -648,8 +648,11 @@ def test_quote_is_purely_informational():
 # ---------------------------------------------------------------- CSAT
 
 def test_csat_formula_asymmetric_ranges():
+    # wait_free=1e9 neutralizes the v1.5 W_time term so the v1.4 range
+    # semantics are tested in isolation (W_time has its own test below).
     kw = dict(alpha=0.6, beta_early=0.1, beta_late=0.4, gamma=0.3,
-              range_k=0.15)
+              range_k=0.15, wait_free=1e9, wait_ref=60, delta_wait=0.25,
+              time_floor=0.5)
     # center 30 -> band max(2, 4.5) = 4.5 -> promised range [25.5, 34.5]
     assert visit_csat(80, 30, 30, 20, 30, **kw) == pytest.approx(80.0)
     assert visit_csat(80, 34, 30, 20, 30, **kw) == pytest.approx(80.0)
@@ -669,6 +672,28 @@ def test_csat_formula_asymmetric_ranges():
     assert predicted_csat(90, 45, 30, 0.3) == pytest.approx(90 * 0.85)
 
 
+def test_w_time_absolute_wait_disutility():
+    """AC1 (v1.5): an accurately-promised long wait must score LOWER than an
+    accurately-promised short one — expectation management softens waiting's
+    cost, it does not erase time consumed. Zero effect at/below wait_free."""
+    kw = dict(alpha=0.6, beta_early=0.1, beta_late=0.4, gamma=0.3,
+              range_k=0.15, wait_free=10, wait_ref=60, delta_wait=0.25,
+              time_floor=0.5)
+    short = visit_csat(80, 15, 15, 20, 30, **kw)
+    long_ = visit_csat(80, 50, 50, 20, 30, **kw)
+    assert short > long_                          # monotone in absolute wait
+    # zero W_time effect at/below wait_free (both promises kept exactly)
+    assert visit_csat(80, 10, 10, 20, 30, **kw) == pytest.approx(80.0)
+    assert visit_csat(80, 5, 5, 20, 30, **kw) == pytest.approx(80.0)
+    # exact value: accurately-promised 60-min wait costs ~21% vs free
+    assert visit_csat(80, 60, 60, 20, 30, **kw) == pytest.approx(
+        80 * (1 - 0.25 * 50 / 60))
+    # floor: very long accurately-promised wait bottoms out at time_floor
+    assert visit_csat(80, 300, 300, 20, 30, **kw) == pytest.approx(80 * 0.5)
+    # appointments are EXCLUDED: the lateness curve has no W_time term
+    assert appointment_csat(80, 0, 5, 15, 20, 30, 0.3) == pytest.approx(80.0)
+
+
 def test_promise_range_band():
     from optimize_lab.csat import promise_range
     assert promise_range(40.0, 0.15) == (34.0, 46.0)
@@ -676,7 +701,8 @@ def test_promise_range_band():
     assert promise_range(0.0, 0.15) == (0.0, 2.0)
     # early side never penalized harder than late side at defaults
     kw = dict(alpha=0.6, beta_early=0.1, beta_late=0.4, gamma=0.3,
-              range_k=0.15)
+              range_k=0.15, wait_free=1e9, wait_ref=60, delta_wait=0.25,
+              time_floor=0.5)
     early = visit_csat(80, 20, 40, 20, 30, **kw)
     late = visit_csat(80, 60, 40, 20, 30, **kw)
     assert early > late

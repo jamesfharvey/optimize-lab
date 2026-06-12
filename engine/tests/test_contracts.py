@@ -72,6 +72,10 @@ def test_defaults_applied():
     assert sc.beta_early == 0.1
     assert sc.beta_late == 0.4
     assert sc.range_k == 0.15
+    assert sc.wait_free == 10                         # v1.5 W_time defaults
+    assert sc.wait_ref == 60
+    assert sc.delta_wait == 0.25
+    assert sc.time_floor == 0.5
 
 
 def test_beta_late_falls_back_to_legacy_beta_accuracy():

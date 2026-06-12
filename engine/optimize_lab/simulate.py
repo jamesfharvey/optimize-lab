@@ -599,7 +599,9 @@ def run_day(sc, dist, draws: DayDraws, params: VariantParams, collect: bool = Fa
                 cs = visit_csat(base, wait, promised[v], actual,
                                 sc.services[s_idx].target, sc.alpha_wait,
                                 sc.beta_early, sc.beta_late,
-                                sc.gamma_duration, sc.range_k)
+                                sc.gamma_duration, sc.range_k,
+                                sc.wait_free, sc.wait_ref,
+                                sc.delta_wait, sc.time_floor)
             csats.append(cs)
             csat_v[v] = cs
             status[v] = ST_SERVED

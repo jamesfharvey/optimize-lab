@@ -21,8 +21,22 @@ The check-in promise is a RANGE around the dispatch-forward quote center c:
                behavior. beta_late keeps the legacy beta_accuracy strength.
   W_duration = 1 - gamma * min(1, max(0, actual/target - 1))
                (penalty only when the visit ran longer than the service target)
+  W_time     = max(time_floor,
+                   1 - delta_wait * max(0, wait - wait_free_min) / wait_ref_min)
+               (v1.5: ABSOLUTE-wait disutility - expectation management
+                softens waiting's cost, it does not erase time actually
+                consumed. A perfectly-quoted long wait is no longer free:
+                at defaults an accurately-promised 60-min wait costs ~21%
+                vs a free one, floored at 0.5 (~130 min). Walk-ins only -
+                an appointment's scheduled time is not "waiting"; the v1.1
+                lateness curve continues to govern appointments. All four
+                constants are ASSUMPTION-FLAGGED until VE.12.01 ratings
+                allow fitting.)
 
 Factors are bounded to [0, 1] before multiplying so CSAT stays in [0, 100].
+Three-mechanism wait decomposition (spec v1.5 section 6): (1) expectation /
+promise honesty (W_wait + asymmetric W_accuracy), (2) absolute time consumed
+(W_time), (3) match quality and duration (Base, W_duration).
 
 APPOINTMENTS:  Base(e,s) x W_punctuality x W_duration.
 The promise-accuracy penalty is replaced by a kinked-convex curve driven by
@@ -68,7 +82,9 @@ def promise_range(center: float, range_k: float) -> tuple:
 def visit_csat(base: float, wait: float, promised_center: float,
                actual_duration: float, target_duration: float,
                alpha: float, beta_early: float, beta_late: float,
-               gamma: float, range_k: float) -> float:
+               gamma: float, range_k: float, wait_free: float,
+               wait_ref: float, delta_wait: float,
+               time_floor: float) -> float:
     low, high = promise_range(promised_center, range_k)
     w_wait = _clamp01(1.0 - alpha * min(1.0, max(0.0, wait - high) / 60.0))
     denom = max(promised_center, 1e-9)
@@ -80,7 +96,9 @@ def visit_csat(base: float, wait: float, promised_center: float,
         w_acc = 1.0
     over_dur = max(0.0, actual_duration / target_duration - 1.0)
     w_dur = _clamp01(1.0 - gamma * min(1.0, over_dur))
-    return base * w_wait * w_acc * w_dur
+    w_time = max(time_floor,
+                 1.0 - delta_wait * max(0.0, wait - wait_free) / wait_ref)
+    return base * w_wait * w_acc * w_dur * w_time
 
 
 def punctuality_factor(lateness: float, late_ok: float,

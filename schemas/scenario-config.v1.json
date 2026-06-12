@@ -548,6 +548,31 @@
               "minimum": 0,
               "description": "ASSUMPTION FLAG: promised-wait range half-width fraction; band = max(2 min, range_k x quote center). Fit from VE.12.01 + forecast logs once live."
             },
+            "wait_free_min": {
+              "type": "number",
+              "default": 10,
+              "minimum": 0,
+              "description": "ASSUMPTION FLAG (v1.5 W_time): waits at or below this feel free - no absolute-time penalty. Walk-ins only. Fit from VE.12.01 ratings once live."
+            },
+            "wait_ref_min": {
+              "type": "number",
+              "default": 60,
+              "exclusiveMinimum": 0,
+              "description": "ASSUMPTION FLAG (v1.5 W_time): scaling reference for the absolute-wait disutility slope."
+            },
+            "delta_wait": {
+              "type": "number",
+              "default": 0.25,
+              "minimum": 0,
+              "description": "ASSUMPTION FLAG (v1.5 W_time): absolute-wait disutility strength - an accurately-promised wait of wait_ref_min costs ~delta_wait x (wait_ref - wait_free)/wait_ref of the score (about 21% at defaults). Expectation management softens waiting's cost; it does not erase time actually consumed."
+            },
+            "time_floor": {
+              "type": "number",
+              "default": 0.5,
+              "minimum": 0,
+              "maximum": 1,
+              "description": "ASSUMPTION FLAG (v1.5 W_time): floor of the absolute-wait factor (reached at ~130 min at defaults)."
+            },
             "gamma_duration": {
               "type": "number",
               "default": 0.3

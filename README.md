@@ -64,6 +64,16 @@ prefixes in canonical lever order (for the waterfall), and the combined set
   (beta_accuracy is its fallback alias). range_k 0.15 ⚠.
   `W_duration = 1 − γ·min(1, max(0, actual/target − 1))`; factors clamped
   to [0, 1].
+- **CSAT, walk-ins — absolute-wait disutility (v1.5)**: `W_time =
+  max(time_floor, 1 − delta_wait·max(0, wait − wait_free_min)/wait_ref_min)`
+  multiplies alongside the above — expectation management softens waiting's
+  cost, it does not erase time consumed (an accurately-promised 60-min wait
+  costs ~21% vs free at defaults; floor 0.5 near 130 min). ⚠ all four
+  constants (10 / 60 / 0.25 / 0.5) are assumptions until VE.12.01 fitting;
+  they are restated in every report's assumption flags. Appointments
+  excluded — their scheduled time is not "waiting". Three-mechanism
+  decomposition: expectation honesty (W_wait, W_accuracy) · time consumed
+  (W_time) · match quality (Base, W_duration).
 - **CSAT, appointments**: `Base(e,s) × W_punctuality × W_duration` where
   `W_punctuality` is kinked-convex in lateness L = max(0, summon − scheduled):
   1.0 for L ≤ late_ok; linear ramp to 0.90 at late_acceptable; then

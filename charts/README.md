@@ -1,5 +1,7 @@
 # charts/ — results presentation layer
 
+> **v1.5 note:** CSAT figures include the absolute-wait disutility term
+> (W_time — long waits cost satisfaction even when accurately promised).
 > **v1.4 note:** CSAT figures reflect the policy-aware, arrival-aware
 > dispatch-forward check-in quote with promise ranges and asymmetric
 > accuracy (spec v1.4). Operational figures (waits, served, lateness) are

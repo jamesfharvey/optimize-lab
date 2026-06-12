@@ -110,6 +110,10 @@ class Scenario:
     beta_early: float          # v1.4: mild early-side accuracy penalty (ASSUMPTION)
     beta_late: float           # v1.4: late-side accuracy penalty (legacy beta_accuracy)
     range_k: float             # v1.4: promise band = max(2, range_k x center) (ASSUMPTION)
+    wait_free: float           # v1.5 W_time: waits <= this feel free (ASSUMPTION)
+    wait_ref: float            # v1.5 W_time: scaling reference (ASSUMPTION)
+    delta_wait: float          # v1.5 W_time: disutility strength (ASSUMPTION)
+    time_floor: float          # v1.5 W_time: factor floor (ASSUMPTION)
     gamma_duration: float
     abandonment_enabled: bool
     weights: tuple                    # (throughput, wait, csat)
@@ -305,6 +309,10 @@ def load_scenario(source) -> Scenario:
         beta_late=float(csat_model.get("beta_late",
                                        csat_model.get("beta_accuracy", 0.4))),
         range_k=float(csat_model.get("range_k", 0.15)),
+        wait_free=float(csat_model.get("wait_free_min", 10)),
+        wait_ref=float(csat_model.get("wait_ref_min", 60)),
+        delta_wait=float(csat_model.get("delta_wait", 0.25)),
+        time_floor=float(csat_model.get("time_floor", 0.5)),
         gamma_duration=float(csat_model.get("gamma_duration", 0.3)),
         abandonment_enabled=aband.get("enabled", True),
         weights=weights,

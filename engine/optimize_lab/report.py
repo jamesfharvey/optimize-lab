@@ -129,6 +129,17 @@ def _assumption_flags(sc: Scenario, sel: list) -> list:
             "caveat": "Assumed fraction of would-be incompletes caught by prep "
                       "(default midpoint of the 40-60% range); validate per customer.",
         })
+    for name, value in (("wait_free_min", sc.wait_free),
+                        ("wait_ref_min", sc.wait_ref),
+                        ("delta_wait", sc.delta_wait),
+                        ("time_floor", sc.time_floor)):
+        flags.append({
+            "lever": f"csat_model.{name}",
+            "assumed_value": value,
+            "caveat": "v1.5 absolute-wait disutility (W_time, walk-ins only): "
+                      "constant is an assumption until VE.12.01 ratings allow "
+                      "fitting the wait-vs-satisfaction curve per customer.",
+        })
     if "deflection" in sel:
         flags.append({
             "lever": "deflection.rate",
