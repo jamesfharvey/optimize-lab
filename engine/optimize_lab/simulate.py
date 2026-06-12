@@ -31,14 +31,16 @@ Rules implemented here (spec-normative):
 """
 from __future__ import annotations
 
+import bisect
 import heapq
 import math
 from dataclasses import dataclass
 
 import numpy as np
 
-from . import policies
-from .csat import appointment_csat, predicted_csat, visit_csat
+from . import abandonment, policies
+from .csat import (appointment_csat, predicted_csat, promise_range,
+                   visit_csat)
 from .world import DayDraws, round5
 
 R_BREAK_END = 0
@@ -66,6 +68,241 @@ STATUS_NAMES = {
     ST_ABANDONED: "abandoned", ST_TURNED_AWAY: "turned_away",
     ST_NO_SHOW: "no_show", ST_DEFLECTED: "deflected",
 }
+
+
+class _ForecastDay:
+    """Shadow of _Day for the dispatch-forward quote: shares the immutable
+    per-day inputs (duration matrix, focus sets, language tables, weights)
+    and COPIES the mutable dispatch state, so a forecast never touches the
+    real day. Satisfies the same interface the policy pickers read.
+
+    v1.4 arrival-aware extension: ids >= n_real are SYNTHETIC expected
+    future walk-ins (deterministic expectation of the active variant's own
+    arrival process). They carry no language restriction (the expected-case
+    visitor) and exist only inside the forecast."""
+    __slots__ = ("sc", "dur", "q", "qpos", "waiting", "arr_t", "next_appt",
+                 "focus", "weights", "aging_cap", "late_ok", "busy",
+                 "busy_until", "on_break", "n_real", "_real")
+
+    def __init__(self, day, synth_suffix=()):
+        self.sc = day.sc
+        self.dur = day.dur
+        self.focus = day.focus
+        self.weights = day.weights
+        self.aging_cap = day.aging_cap
+        self.late_ok = day.late_ok
+        self.n_real = len(day.arr_t)
+        if synth_suffix:
+            self.arr_t = np.concatenate(
+                [day.arr_t, np.array([s[0] for s in synth_suffix])])
+            self.waiting = np.concatenate(
+                [day.waiting, np.zeros(len(synth_suffix), dtype=bool)])
+        else:
+            self.arr_t = day.arr_t
+            self.waiting = day.waiting.copy()
+        self.q = [list(x) for x in day.q]
+        self.qpos = list(day.qpos)
+        self.busy = list(day.busy)
+        self.busy_until = list(day.busy_until)
+        self.on_break = list(day.on_break)
+        self.next_appt = day.next_appt
+        self._real = day
+
+    def lang_ok(self, e, v):
+        if v >= self.n_real:
+            return True
+        return self._real.lang_ok(e, v)
+
+    def is_free(self, e, t):
+        emp = self.sc.employees[e]
+        return (not self.busy[e] and not self.on_break[e]
+                and emp.work_start <= t < emp.work_end)
+
+    def pred_csat(self, e, s_idx):
+        return self._real.pred_csat(e, s_idx)
+
+
+def expected_arrival_schedule(sc, dist, params: "VariantParams") -> list:
+    """Deterministic EXPECTED future walk-in stream of the active variant
+    (v1.4 arrival-aware quote): per service, the post-deflection,
+    post-smoothing expected walk-in count, placed at the arrival shape's
+    expectation quantiles (no random draws — quotes are stable and
+    seed-independent). Returns a sorted [(time, service_idx)] list; the
+    forecast admits only entries after the quote time (earlier expected
+    arrivals are already realized, or not, in the live queue)."""
+    if sc.visitors_range:
+        n_exp = (sc.visitors_range[0] + sc.visitors_range[1]) / 2.0
+    else:
+        n_exp = float(sc.visitors_per_day)
+    base = n_exp * (1.0 - params.deflect_rate)
+    out = []
+    for s in sc.services:
+        share = base * s.share
+        if s.appt_eligible:
+            share *= (1.0 - params.appt_share)
+        k = int(round(share))
+        for j in range(k):
+            out.append((dist.inverse((j + 0.5) / k), s.idx))
+    out.sort()
+    return out
+
+
+@dataclass
+class ForecastContext:
+    """Live references into run_day state needed by the quote (shared, not
+    copied — the forecast copies what it mutates)."""
+    pending: dict          # v -> (sched, s_idx, eok) for booked, unstarted appts
+    due: list              # checked-in appointments awaiting summon
+    pins: dict
+    method: str
+    brk_win: list          # per employee: (start, end) or None, daily-shifted
+    pending_brk: list
+    pick: object           # the active policy picker (same fn the engine uses)
+    open_m: float
+    close_m: float
+    early_max: float
+    abandonment: bool
+    synth: list            # expected future walk-ins [(time, s_idx)], sorted
+
+
+def dispatch_forward_quote(day, fc: ForecastContext, v: int, t: float) -> float:
+    """v1.4 check-in quote: predict walk-in v's wait by running the engine's
+    OWN dispatch forward over the current state — same pickers, same duration
+    matrix, same collision/reservation/break/appointment logic — with no
+    future arrivals. Queue-ahead service times are discounted by the
+    configured abandonment curve's conditional survival
+    S(tau - arrival)/S(t - arrival): the office cannot know who will walk
+    out, but it knows the curve. Appointments are planned as shows (no-shows
+    are unknowable before their slot) at undiscounted durations. Incompletes
+    are not modeled in the quote. If v cannot be summoned before close, the
+    quote saturates at close - t.
+
+    The quote is informational only — it feeds the walk-in promise range and
+    the audit trail, never queueing/routing/abandonment decisions (asserted
+    by test_quote_is_purely_informational)."""
+    sc = day.sc
+    E = sc.n_employees
+    i0 = bisect.bisect_right(fc.synth, (t, 1 << 30))
+    suffix = fc.synth[i0:]
+    f = _ForecastDay(day, suffix)
+    pending = dict(fc.pending)
+    info = dict(fc.pending)          # static details survive forecast pops
+    due = list(fc.due)
+    pend_brk = list(fc.pending_brk)
+
+    def survival(w, when):
+        if not fc.abandonment:
+            return 1.0
+        s0 = 1.0 - abandonment.prob_abandon_by(t - f.arr_t[w])
+        s1 = 1.0 - abandonment.prob_abandon_by(when - f.arr_t[w])
+        return s1 / s0 if s0 > 1e-12 else 1.0
+
+    # static future events: break boundaries, shift starts, appointment
+    # check-ins (window opens). Completions are tracked dynamically.
+    static = []
+    for emp in sc.employees:
+        bw = fc.brk_win[emp.idx]
+        if bw is not None:
+            if bw[0] > t:
+                static.append((bw[0], 0, emp.idx))   # 0 = break start
+            if bw[1] > t:
+                static.append((bw[1], 1, emp.idx))   # 1 = break end
+        if emp.work_start > t:
+            static.append((float(emp.work_start), 2, emp.idx))  # wake-up only
+    for a, (sched, _s, _e) in pending.items():
+        if a not in due:
+            open_at = max(fc.open_m, sched - fc.early_max)
+            if open_at > t:
+                static.append((open_at, 3, a))       # 3 = appointment check-in
+    for k, (st, s_idx) in enumerate(suffix):
+        static.append((st, 4, (f.n_real + k, s_idx)))  # 4 = expected walk-in
+    static.sort()
+    si = 0
+
+    dirty = [True]
+
+    def refresh():
+        if dirty[0]:
+            plist = [(s0, a, s_idx, eok)
+                     for a, (s0, s_idx, eok) in pending.items()]
+            f.next_appt = policies.compute_next_appt(sc, plist, fc.pins,
+                                                     fc.method)
+            dirty[0] = False
+
+    tau = t
+    while True:
+        refresh()
+        progress = True
+        while progress:
+            progress = False
+            if due:
+                for a in sorted(due, key=lambda a: (info[a][0], a)):
+                    s_idx, eok = info[a][1], info[a][2]
+                    if fc.method == "employee_specific":
+                        pin = fc.pins.get(a)
+                        cands = [pin] if pin is not None else []
+                    else:
+                        cands = sc.eligible_emps[s_idx]
+                    e_take = next((e for e in cands
+                                   if eok[e] and f.is_free(e, tau)), None)
+                    if e_take is not None:
+                        due.remove(a)
+                        pending.pop(a, None)
+                        dirty[0] = True
+                        refresh()
+                        f.busy[e_take] = True
+                        f.busy_until[e_take] = tau + day.dur[e_take][s_idx]
+                        progress = True
+            for emp in sc.employees:
+                if not f.is_free(emp.idx, tau):
+                    continue
+                got = fc.pick(f, emp.idx, tau)
+                if got is None:
+                    continue
+                w, s_idx = got
+                if w == v:
+                    return tau - t
+                f.waiting[w] = False
+                d = day.dur[emp.idx][s_idx] * survival(w, tau)
+                f.busy[emp.idx] = True
+                f.busy_until[emp.idx] = tau + max(d, 1e-6)
+                progress = True
+        # advance to the next event
+        nxt = math.inf
+        for e in range(E):
+            if f.busy[e] and f.busy_until[e] > tau + EPS:
+                nxt = min(nxt, f.busy_until[e])
+        if si < len(static):
+            nxt = min(nxt, static[si][0])
+        if not math.isfinite(nxt) or nxt >= fc.close_m:
+            return max(0.0, fc.close_m - t)
+        tau = nxt
+        for e in range(E):
+            if f.busy[e] and f.busy_until[e] <= tau + EPS:
+                f.busy[e] = False
+                if pend_brk[e]:
+                    pend_brk[e] = False
+                    bw = fc.brk_win[e]
+                    if bw is not None and tau < bw[1] - EPS:
+                        f.on_break[e] = True
+        while si < len(static) and static[si][0] <= tau + EPS:
+            _, kind, p = static[si]
+            si += 1
+            if kind == 0:
+                if f.busy[p]:
+                    pend_brk[p] = True
+                else:
+                    f.on_break[p] = True
+            elif kind == 1:
+                f.on_break[p] = False
+                pend_brk[p] = False
+            elif kind == 3:
+                if p in pending and p not in due:
+                    due.append(p)
+            elif kind == 4:
+                sid, s_idx = p
+                f.waiting[sid] = True
+                f.q[s_idx].append(sid)
 
 
 @dataclass
@@ -157,6 +394,18 @@ def build_appointment_schedule(sc, dist, draws: DayDraws, params: VariantParams)
         for v in ids:
             sched[v] = min(hi, max(lo, round5(dist.inverse(draws.u_slot[v]))))
     return is_appt, sched
+
+
+def _promise_cols(sc, v, is_appt, deflected, promised, status):
+    """Audit-trail promise columns (low, center, high). Walk-ins carry the
+    full quoted range; appointments are promised punctuality (center =
+    late_ok), deflected visitors carry no promise."""
+    if status[v] == ST_DEFLECTED:
+        return ("", "", "")
+    if is_appt[v] and not deflected[v]:
+        return ("", round(float(promised[v]), 2), "")
+    low, high = promise_range(float(promised[v]), sc.range_k)
+    return (round(low, 2), round(float(promised[v]), 2), round(high, 2))
 
 
 def run_day(sc, dist, draws: DayDraws, params: VariantParams, collect: bool = False):
@@ -262,8 +511,13 @@ def run_day(sc, dist, draws: DayDraws, params: VariantParams, collect: bool = Fa
     csat_v = np.full(n, np.nan)
     wait_v = np.full(n, np.nan)
 
-    dbar = [sc.services[s].target / sc.mean_eff[s] for s in range(S)]
-    qsum = [0.0]
+    fc = ForecastContext(
+        pending=pending, due=due, pins=pins, method=method,
+        brk_win=brk_win, pending_brk=pending_brk, pick=pick,
+        open_m=open_m, close_m=close_m, early_max=early_max,
+        abandonment=sc.abandonment_enabled,
+        synth=expected_arrival_schedule(sc, dist, params),
+    )
 
     waits, csats = [], []
     lateness = []        # summon lateness of every summoned appointment
@@ -302,15 +556,6 @@ def run_day(sc, dist, draws: DayDraws, params: VariantParams, collect: bool = Fa
         else:
             push(float(draws.arrival[v]), R_WALK_ARR, v)
 
-    def forecast(t):
-        """Promised wait at check-in: (in-progress remaining + queue-ahead
-        nominal workload) / employees currently on shift and not on break."""
-        rem = sum(day.busy_until[e] - t for e in range(E) if day.busy[e])
-        active = sum(1 for emp in sc.employees
-                     if emp.work_start <= t < emp.work_end
-                     and not day.on_break[emp.idx])
-        return (rem + qsum[0]) / max(1, active)
-
     def refresh_reservations():
         if res_dirty[0]:
             plist = [(s, v, sv, eok) for v, (s, sv, eok) in pending.items()]
@@ -336,7 +581,6 @@ def run_day(sc, dist, draws: DayDraws, params: VariantParams, collect: bool = Fa
             promised[v] = late_ok                  # the punctuality promise
         else:
             day.waiting[v] = False
-            qsum[0] -= dbar[s_idx]
             wait = t - day.arr_t[v]
         wait_v[v] = wait
         if incomplete:
@@ -354,7 +598,8 @@ def run_day(sc, dist, draws: DayDraws, params: VariantParams, collect: bool = Fa
             else:
                 cs = visit_csat(base, wait, promised[v], actual,
                                 sc.services[s_idx].target, sc.alpha_wait,
-                                sc.beta_accuracy, sc.gamma_duration)
+                                sc.beta_early, sc.beta_late,
+                                sc.gamma_duration, sc.range_k)
             csats.append(cs)
             csat_v[v] = cs
             status[v] = ST_SERVED
@@ -422,16 +667,14 @@ def run_day(sc, dist, draws: DayDraws, params: VariantParams, collect: bool = Fa
                 v = payload
                 day.waiting[v] = True
                 day.arr_t[v] = t
-                promised[v] = forecast(t)
                 day.q[int(draws.service[v])].append(v)
-                qsum[0] += dbar[int(draws.service[v])]
+                promised[v] = dispatch_forward_quote(day, fc, v, t)
                 if sc.abandonment_enabled and math.isfinite(draws.patience[v]):
                     push(t + float(draws.patience[v]), R_ABANDON, v)
             elif rank == R_ABANDON:
                 v = payload
                 if day.waiting[v] and not closed[0]:
                     day.waiting[v] = False
-                    qsum[0] -= dbar[int(draws.service[v])]
                     counters["abandoned"] += 1
                     status[v] = ST_ABANDONED
                     wait_v[v] = t - day.arr_t[v]
@@ -496,7 +739,7 @@ def run_day(sc, dist, draws: DayDraws, params: VariantParams, collect: bool = Fa
                 lang_names[day.vlang[v]] if day.vlang[v] >= 0 else "",
                 round(float(sched[v]), 2) if is_appt[v] and not deflected[v]
                 else round(float(draws.arrival[v]), 2),
-                round(float(promised[v]), 2) if status[v] != ST_DEFLECTED else "",
+                *_promise_cols(sc, v, is_appt, deflected, promised, status),
                 round(float(start_t[v]), 2) if started[v] else "",
                 round(float(end_t[v]), 2) if started[v] else "",
                 sc.employees[int(served_by[v])].id if served_by[v] >= 0 else "",

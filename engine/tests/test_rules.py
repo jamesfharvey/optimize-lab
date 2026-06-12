@@ -17,9 +17,9 @@ from optimize_lab.world import ArrivalDist, gen_day_draws
 
 BASE = VariantParams(appt_share=0.0, distribution="even", matching=False)
 
-# row indices in the collect=True output
-R_TYPE, R_SVC, R_CHECKIN, R_PROMISED, R_START, R_END, R_EMP, R_STATUS, R_WAIT, R_CSAT = \
-    1, 2, 4, 5, 6, 7, 8, 9, 10, 11
+# row indices in the collect=True output (v1.4: promise is a range)
+(R_TYPE, R_SVC, R_CHECKIN, R_PROM_LOW, R_PROMISED, R_PROM_HIGH, R_START,
+ R_END, R_EMP, R_STATUS, R_WAIT, R_CSAT) = 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
 
 
 def run(sc, draws, params=BASE):
@@ -515,26 +515,171 @@ def test_turned_away_and_makespan():
 
 # ---------------------------------------------------------------- forecasts
 
-def test_promised_wait_formula():
+def test_promised_wait_dispatch_forward():
     sc = load_mini()
     d = hand_draws(sc, arrivals=[540.0, 550.0, 551.0],
                    services=["A", "B", "B"])
     _, rows = run(sc, d)
-    assert rows[0][R_PROMISED] == pytest.approx(0.0)    # empty office
-    assert rows[1][R_PROMISED] == pytest.approx(20.0)   # remaining A work / 1
-    assert rows[2][R_PROMISED] == pytest.approx(29.0)   # 19 remaining + 10 queued
+    # dispatch replay: v0 starts at once; v1 waits for the A completion at
+    # 570; v2 waits behind v1 (570 + 10 - 551)
+    assert rows[0][R_PROMISED] == pytest.approx(0.0)
+    assert rows[1][R_PROMISED] == pytest.approx(20.0)
+    assert rows[2][R_PROMISED] == pytest.approx(29.0)
+    # range columns: band = max(2, 0.15 * center)
+    assert rows[2][R_PROM_LOW] == pytest.approx(29.0 - 4.35)
+    assert rows[2][R_PROM_HIGH] == pytest.approx(29.0 + 4.35)
+    assert rows[0][R_PROM_LOW] == 0.0 and rows[0][R_PROM_HIGH] == 2.0
+
+
+def test_quote_models_parallel_dispatch():
+    # Two employees busy until 555/570; one A visitor queued ahead. The old
+    # work/capacity quote said (13+28+20)/2 = 30.5; the dispatch-forward
+    # quote follows the actual assignment order: E1 frees at 555, takes the
+    # head; both free at 570 and v starts there -> 28.
+    sc = load_mini(employees=[
+        {"id": "E1", "name": "One", "profile": [
+            {"service_id": "A", "efficiency": 2.0, "csat": 80},
+            {"service_id": "B", "efficiency": 1.0, "csat": 80}]},
+        {"id": "E2", "name": "Two", "profile": [
+            {"service_id": "A", "efficiency": 1.0, "csat": 80},
+            {"service_id": "B", "efficiency": 1.0, "csat": 80}]},
+    ])
+    d = hand_draws(sc, arrivals=[540.0, 540.0, 541.0, 542.0],
+                   services=["A", "A", "A", "A"])
+    _, rows = run(sc, d)
+    assert rows[0][R_START] == 540 and rows[0][R_END] == 555    # E1, dur 15
+    assert rows[1][R_START] == 540 and rows[1][R_END] == 570    # E2, dur 30
+    assert rows[3][R_PROMISED] == pytest.approx(28.0)
+    assert rows[3][R_START] == pytest.approx(570)               # promise == actual
+
+
+def test_quote_abandonment_survival_discount():
+    # Queue-ahead work is discounted by conditional survival: w (B, queued
+    # since 541) is forecast to be served at 600 with survival
+    # S(59)/S(49) = 0.8827/0.9093, shortening its expected 30-min service.
+    cfg = mini_config(
+        services=[{"id": "A", "name": "Long", "target_duration_min": 60,
+                   "demand_share": 0.5},
+                  {"id": "B", "name": "Beta", "target_duration_min": 30,
+                   "demand_share": 0.5}],
+        simulation={"abandonment_model": {"enabled": True},
+                    "daily_form_jitter": 0.0, "monte_carlo_days": 1,
+                    "random_seed": 7})
+    sc = load_scenario(cfg)
+    d = hand_draws(sc, arrivals=[540.0, 541.0, 590.0],
+                   services=["A", "B", "B"])
+    _, rows = run(sc, d)
+    s0 = 1 - abandonment.prob_abandon_by(590 - 541)
+    s1 = 1 - abandonment.prob_abandon_by(600 - 541)
+    expected = (600 - 590) + 30.0 * s1 / s0
+    assert rows[2][R_PROMISED] == pytest.approx(expected, abs=0.011)
+    # with abandonment disabled the same quote is undiscounted
+    sc_off = load_scenario(mini_config(
+        services=cfg["services"],
+        simulation={"abandonment_model": {"enabled": False},
+                    "daily_form_jitter": 0.0, "monte_carlo_days": 1,
+                    "random_seed": 7}))
+    _, rows_off = run(sc_off, d)
+    assert rows_off[2][R_PROMISED] == pytest.approx(40.0)
+
+
+def test_quote_expects_future_arrivals_under_matching():
+    # Arrival-aware quote (v1.4): under matching, the throughput-leaning
+    # score lets expected future short jobs (B, 10 min, one every ~10 min)
+    # jump a queued long-service visitor (A, 30 min) until the aging cap
+    # rescues them — so the honest quote for v is the cap itself, not the
+    # naive "next completion" 5 minutes. Baseline FIFO is arrival-immune:
+    # younger expected arrivals can never out-wait v.
+    cfg = mini_config(demand={"visitors_per_day": 30,
+                              "arrival_pattern": {"shape": "uniform"}})
+    sc = load_scenario(cfg)
+    d = hand_draws(sc, arrivals=[575.0, 600.0], services=["A", "A"])
+    opt = VariantParams(appt_share=0.0, distribution="even", matching=True)
+    _, rows = run(sc, d, opt)
+    assert rows[1][R_PROMISED] == pytest.approx(45.0)   # = aging_cap_min
+    _, rows_fifo = run(sc, d)
+    assert rows_fifo[1][R_PROMISED] == pytest.approx(5.0)  # FIFO: next free
+
+
+def test_expected_arrival_schedule_deterministic():
+    from optimize_lab.simulate import expected_arrival_schedule
+    sc = load_scenario(mini_config(demand={
+        "visitors_per_day": 30, "arrival_pattern": {"shape": "uniform"}}))
+    dist = ArrivalDist(sc)
+    a = expected_arrival_schedule(sc, dist, BASE)
+    assert a == expected_arrival_schedule(sc, dist, BASE)   # no randomness
+    assert len(a) == 30                                     # 15 per service
+    assert all(sc.open_min <= x[0] <= sc.cutoff for x in a)
+    # demand-side levers thin the stream
+    thin = expected_arrival_schedule(
+        sc, dist, VariantParams(appt_share=0.5, distribution="even",
+                                matching=False, deflect_rate=0.2))
+    assert len(thin) == 2 * round(15 * 0.8 * 0.5)
+
+
+def test_quote_is_purely_informational():
+    """AC5 invariance: the quote feeds only the walk-in promise terms (CSAT)
+    and the audit trail — never queueing, routing, or abandonment. Replacing
+    it with a constant must leave every operational metric identical."""
+    import dataclasses
+    import optimize_lab.simulate as sim
+    uni = load_scenario(PRESETS[-1])
+    dist = ArrivalDist(uni)
+    draws = gen_day_draws(uni, 0, dist)
+    for fs in (frozenset(), frozenset(["matching", "appointment_smoothing",
+                                       "prep_in_queue", "deflection",
+                                       "running_late"])):
+        params = make_params(uni, fs)
+        real, _ = run_day(uni, dist, draws, params)
+        orig = sim.dispatch_forward_quote
+        sim.dispatch_forward_quote = lambda day, fc, v, t: 7.0
+        try:
+            patched, _ = run_day(uni, dist, draws, params)
+        finally:
+            sim.dispatch_forward_quote = orig
+        a, b = dataclasses.asdict(real), dataclasses.asdict(patched)
+        for field in a:
+            if field == "mean_csat":
+                assert a[field] != b[field] or a[field] == 0.0
+            else:
+                assert a[field] == b[field], f"operational drift in {field}"
 
 
 # ---------------------------------------------------------------- CSAT
 
-def test_csat_formula():
-    kw = dict(alpha=0.6, beta=0.4, gamma=0.3)
-    assert visit_csat(80, 10, 10, 20, 30, **kw) == pytest.approx(80.0)
-    assert visit_csat(80, 40, 10, 20, 30, **kw) == pytest.approx(
-        80 * (1 - 0.6 * 0.5) * (1 - 0.4 * 0.5))
-    assert visit_csat(80, 10, 10, 45, 30, **kw) == pytest.approx(
+def test_csat_formula_asymmetric_ranges():
+    kw = dict(alpha=0.6, beta_early=0.1, beta_late=0.4, gamma=0.3,
+              range_k=0.15)
+    # center 30 -> band max(2, 4.5) = 4.5 -> promised range [25.5, 34.5]
+    assert visit_csat(80, 30, 30, 20, 30, **kw) == pytest.approx(80.0)
+    assert visit_csat(80, 34, 30, 20, 30, **kw) == pytest.approx(80.0)
+    assert visit_csat(80, 26, 30, 20, 30, **kw) == pytest.approx(80.0)
+    # late by 10 past high: W_acc = 1 - 0.4*(10/30); W_wait = 1 - 0.6*(10/60)
+    assert visit_csat(80, 44.5, 30, 20, 30, **kw) == pytest.approx(
+        80 * (1 - 0.6 * 10 / 60) * (1 - 0.4 * 10 / 30))
+    # early by 5.5 below low: mild beta_early, no W_wait penalty
+    assert visit_csat(80, 20, 30, 20, 30, **kw) == pytest.approx(
+        80 * (1 - 0.1 * 5.5 / 30))
+    # over-duration penalty unchanged
+    assert visit_csat(80, 30, 30, 45, 30, **kw) == pytest.approx(
         80 * (1 - 0.3 * 0.5))
+    # tiny center: band floor 2 min applies, late ratio caps at 1
+    assert visit_csat(80, 10, 0.0, 20, 30, **kw) == pytest.approx(
+        80 * (1 - 0.6 * 8 / 60) * (1 - 0.4))
     assert predicted_csat(90, 45, 30, 0.3) == pytest.approx(90 * 0.85)
+
+
+def test_promise_range_band():
+    from optimize_lab.csat import promise_range
+    assert promise_range(40.0, 0.15) == (34.0, 46.0)
+    assert promise_range(5.0, 0.15) == (3.0, 7.0)      # 2-min floor
+    assert promise_range(0.0, 0.15) == (0.0, 2.0)
+    # early side never penalized harder than late side at defaults
+    kw = dict(alpha=0.6, beta_early=0.1, beta_late=0.4, gamma=0.3,
+              range_k=0.15)
+    early = visit_csat(80, 20, 40, 20, 30, **kw)
+    late = visit_csat(80, 60, 40, 20, 30, **kw)
+    assert early > late
 
 
 def test_punctuality_curve_kinked_convex():

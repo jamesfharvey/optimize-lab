@@ -107,7 +107,9 @@ class Scenario:
     jitter: float
     seed: int
     alpha_wait: float
-    beta_accuracy: float
+    beta_early: float          # v1.4: mild early-side accuracy penalty (ASSUMPTION)
+    beta_late: float           # v1.4: late-side accuracy penalty (legacy beta_accuracy)
+    range_k: float             # v1.4: promise band = max(2, range_k x center) (ASSUMPTION)
     gamma_duration: float
     abandonment_enabled: bool
     weights: tuple                    # (throughput, wait, csat)
@@ -299,7 +301,10 @@ def load_scenario(source) -> Scenario:
         jitter=float(sim.get("daily_form_jitter", 0.12)),
         seed=int(sim.get("random_seed", 42)),
         alpha_wait=float(csat_model.get("alpha_wait", 0.6)),
-        beta_accuracy=float(csat_model.get("beta_accuracy", 0.4)),
+        beta_early=float(csat_model.get("beta_early", 0.1)),
+        beta_late=float(csat_model.get("beta_late",
+                                       csat_model.get("beta_accuracy", 0.4))),
+        range_k=float(csat_model.get("range_k", 0.15)),
         gamma_duration=float(csat_model.get("gamma_duration", 0.3)),
         abandonment_enabled=aband.get("enabled", True),
         weights=weights,

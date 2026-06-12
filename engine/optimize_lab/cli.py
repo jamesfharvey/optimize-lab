@@ -12,8 +12,9 @@ from .report import build_report, summary_text, write_report
 
 CSV_HEADER = [
     "variant", "day", "visitor", "type", "service", "language",
-    "checkin_or_scheduled_min", "promised_wait_min", "start_min", "end_min",
-    "employee", "status", "wait_min", "csat",
+    "checkin_or_scheduled_min", "promised_low_min", "promised_center_min",
+    "promised_high_min", "start_min", "end_min", "employee", "status",
+    "wait_min", "csat",
 ]
 
 

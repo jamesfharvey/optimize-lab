@@ -68,6 +68,19 @@ def test_defaults_applied():
     assert sc.levers["matching"]["enabled"] is True   # schema default
     assert sc.weights == (0.6, 0.4, 0.0)              # wait_dominant preset
     assert sc.aging_cap == 45
+    assert sc.alpha_wait == 0.6                       # v1.4 csat_model defaults
+    assert sc.beta_early == 0.1
+    assert sc.beta_late == 0.4
+    assert sc.range_k == 0.15
+
+
+def test_beta_late_falls_back_to_legacy_beta_accuracy():
+    cfg = mini_config()
+    cfg["simulation"]["csat_model"] = {"beta_accuracy": 0.3}
+    sc = load_scenario(cfg)
+    assert sc.beta_late == 0.3
+    cfg["simulation"]["csat_model"] = {"beta_accuracy": 0.3, "beta_late": 0.25}
+    assert load_scenario(cfg).beta_late == 0.25       # explicit wins
 
 
 def test_weight_preset_resolution():

@@ -1,18 +1,28 @@
 """Predicted-CSAT model.
 
-WALK-INS:  Base(e,s) x W_wait x W_accuracy x W_duration.
-The spec fixes the multiplicative shape and the alpha/beta/gamma parameters;
-the exact W functions are engine-defined and documented here and in README:
+WALK-INS (v1.4):  Base(e,s) x W_wait x W_accuracy x W_duration.
+The check-in promise is a RANGE around the dispatch-forward quote center c:
+  band = max(2 min, range_k x c);  low = max(0, c - band);  high = c + band
+(range_k is ASSUMPTION-FLAGGED until VE.12.01 + forecast logs allow fitting).
 
-  W_wait     = 1 - alpha * min(1, max(0, wait - promised) / 60)
-               (penalty only when the visitor waited LONGER than promised)
-  W_accuracy = 1 - beta  * min(1, |wait - promised| / 60)
-               (promise accuracy: off in either direction erodes trust)
+  W_wait     = 1 - alpha * min(1, max(0, wait - high) / 60)
+               ("later than promised" = beyond the communicated upper bound;
+                a wait inside the promised range is never wait-penalized —
+                judgment call, documented in spec section 6)
+  W_accuracy = 1.0                                   if low <= wait <= high
+             = 1 - beta_late  * min(1, (wait - high) / max(c, eps))  if late
+             = 1 - beta_early * min(1, (low - wait) / max(c, eps))   if early
+               Asymmetric by design: the mild early side (beta_early default
+               0.1, ASSUMPTION-FLAGGED) represents the product's re-forecast
+               updates (VE.02.01.US.09 pre-summon notification), >x% change
+               alerts, range communication, and visitor-initiated push-back
+               when summoned early — none of which are simulated as message
+               traffic because sim visitors have no leave-and-return
+               behavior. beta_late keeps the legacy beta_accuracy strength.
   W_duration = 1 - gamma * min(1, max(0, actual/target - 1))
                (penalty only when the visit ran longer than the service target)
 
-All horizons are 60-minute saturations; factors are bounded to [0, 1] before
-multiplying so CSAT stays within [0, 100].
+Factors are bounded to [0, 1] before multiplying so CSAT stays in [0, 100].
 
 APPOINTMENTS:  Base(e,s) x W_punctuality x W_duration.
 The promise-accuracy penalty is replaced by a kinked-convex curve driven by
@@ -49,12 +59,25 @@ def _clamp01(x: float) -> float:
     return 0.0 if x < 0.0 else (1.0 if x > 1.0 else x)
 
 
-def visit_csat(base: float, wait: float, promised: float,
+def promise_range(center: float, range_k: float) -> tuple:
+    """The communicated promise interval around the dispatch-forward quote."""
+    band = max(2.0, range_k * center)
+    return max(0.0, center - band), center + band
+
+
+def visit_csat(base: float, wait: float, promised_center: float,
                actual_duration: float, target_duration: float,
-               alpha: float, beta: float, gamma: float) -> float:
-    over = max(0.0, wait - promised)
-    w_wait = _clamp01(1.0 - alpha * min(1.0, over / 60.0))
-    w_acc = _clamp01(1.0 - beta * min(1.0, abs(wait - promised) / 60.0))
+               alpha: float, beta_early: float, beta_late: float,
+               gamma: float, range_k: float) -> float:
+    low, high = promise_range(promised_center, range_k)
+    w_wait = _clamp01(1.0 - alpha * min(1.0, max(0.0, wait - high) / 60.0))
+    denom = max(promised_center, 1e-9)
+    if wait > high:
+        w_acc = _clamp01(1.0 - beta_late * min(1.0, (wait - high) / denom))
+    elif wait < low:
+        w_acc = _clamp01(1.0 - beta_early * min(1.0, (low - wait) / denom))
+    else:
+        w_acc = 1.0
     over_dur = max(0.0, actual_duration / target_duration - 1.0)
     w_dur = _clamp01(1.0 - gamma * min(1.0, over_dur))
     return base * w_wait * w_acc * w_dur

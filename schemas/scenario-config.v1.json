@@ -521,7 +521,7 @@
         },
         "csat_model": {
           "type": "object",
-          "description": "Predicted-CSAT formula parameters: base \u00d7 W_wait \u00d7 W_accuracy \u00d7 W_duration",
+          "description": "Predicted-CSAT formula parameters: base \u00d7 W_wait \u00d7 W_accuracy \u00d7 W_duration. As of v1.4 the walk-in promise is a RANGE around the dispatch-forward quote and W_accuracy is asymmetric (beta_late / beta_early).",
           "properties": {
             "alpha_wait": {
               "type": "number",
@@ -529,7 +529,24 @@
             },
             "beta_accuracy": {
               "type": "number",
-              "default": 0.4
+              "default": 0.4,
+              "description": "Superseded in v1.4 by beta_late; retained as its fallback when beta_late is absent."
+            },
+            "beta_late": {
+              "type": "number",
+              "default": 0.4,
+              "description": "Late-side promise-accuracy strength: penalty on (wait - promised_high)/center when service starts later than the promised range."
+            },
+            "beta_early": {
+              "type": "number",
+              "default": 0.1,
+              "description": "ASSUMPTION FLAG: mild early-side strength. Deliberately low because the product's re-forecast updates (VE.02.01.US.09 pre-summon notification), >x% change alerts, range communication, and visitor-initiated push-back when summoned early absorb most over-delivery surprise. Fit from VE.12.01 ratings once live."
+            },
+            "range_k": {
+              "type": "number",
+              "default": 0.15,
+              "minimum": 0,
+              "description": "ASSUMPTION FLAG: promised-wait range half-width fraction; band = max(2 min, range_k x quote center). Fit from VE.12.01 + forecast logs once live."
             },
             "gamma_duration": {
               "type": "number",

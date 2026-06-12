@@ -42,17 +42,28 @@ prefixes in canonical lever order (for the waterfall), and the combined set
 
 ### Documented formulas (engine-defined where the spec left latitude)
 
-- **Promised wait** (walk-in check-in forecast, also the CSAT grace):
-  `(remaining minutes of in-progress services + Σ queue-ahead nominal
-  durations) / max(1, employees on shift and not on break)`, where the
-  nominal duration of a queued visitor is `target / team-mean efficiency`
-  (form and prep are unknown to the forecaster). Appointments are promised
-  their scheduled time; their CSAT penalty is the punctuality lateness curve.
-- **CSAT, walk-ins**: `Base(e,s) × W_wait × W_accuracy × W_duration`
-  with `W_wait = 1 − α·min(1, max(0, wait − promised)/60)`,
-  `W_accuracy = 1 − β·min(1, |wait − promised|/60)`,
-  `W_duration = 1 − γ·min(1, max(0, actual/target − 1))`; factors clamped to
-  [0, 1]. α/β/γ from `simulation.csat_model`.
+- **Promised wait (v1.4, dispatch-forward + arrival-aware)**: the walk-in
+  quote replays the engine's own dispatch (same pickers, duration matrix,
+  collision/break/appointment logic) over the live state, plus the active
+  variant's EXPECTED future walk-ins (deterministic quantiles of the
+  configured arrival shape, post-smoothing/post-deflection rates; no random
+  draws) with queue-ahead work discounted by the abandonment curve's
+  conditional survival. Communicated as a range: ± max(2 min, range_k ×
+  center). Informational only — never feeds queueing/routing/abandonment
+  (invariance-tested). Appointments are promised their scheduled time;
+  their CSAT penalty is the punctuality lateness curve.
+- **CSAT, walk-ins (v1.4)**: `Base(e,s) × W_wait × W_accuracy × W_duration`.
+  `W_wait = 1 − α·min(1, max(0, wait − promised_high)/60)` ("later than
+  promised" = beyond the communicated range — a wait inside the range is
+  never wait-penalized; judgment call, documented). `W_accuracy` is
+  ASYMMETRIC against the original check-in range: 1.0 inside [low, high];
+  late: `1 − beta_late·min(1, (wait − high)/center)`; early:
+  `1 − beta_early·min(1, (low − wait)/center)`. beta_early (0.1 ⚠) encodes
+  the product's re-forecast updates, >x% drop alerts and visitor push-back
+  rather than simulated messages; beta_late keeps the legacy 0.4
+  (beta_accuracy is its fallback alias). range_k 0.15 ⚠.
+  `W_duration = 1 − γ·min(1, max(0, actual/target − 1))`; factors clamped
+  to [0, 1].
 - **CSAT, appointments**: `Base(e,s) × W_punctuality × W_duration` where
   `W_punctuality` is kinked-convex in lateness L = max(0, summon − scheduled):
   1.0 for L ≤ late_ok; linear ramp to 0.90 at late_acceptable; then
@@ -124,7 +135,12 @@ prefixes in canonical lever order (for the waterfall), and the combined set
     paired evaluation days under the baseline policy; daily break variability
     still applies to the recommended windows. Recommendation is reported as
     `break_schedule_recommendation`.
-12. **Schema defaults are mirrored in config.py** (jsonschema does not inject
+12. **Quote scope (v1.4)**: forecast synthetics carry no language
+    restriction (expected-case visitor); pending appointments are planned as
+    shows (no-shows are unknowable before their slot); incompletes are not
+    modeled in the quote; quotes saturate at close − t. Quoting costs
+    ~10–15× day-sim runtime (accepted for the lab).
+13. **Schema defaults are mirrored in config.py** (jsonschema does not inject
     defaults), so the deflection-default revision 0.10 → 0.02 (June 11, 2026)
     touched the single mirrored constant in config.py — an approved exception
     to the engine freeze. Presets set the rate explicitly; behavior is
