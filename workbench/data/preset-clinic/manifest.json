@@ -1,0 +1,139 @@
+{
+  "_": "matching/smoothing/prep/deflection/running_late values above are the configuration the bundle was RUN with; the workbench displays them read-only and never re-runs weights.",
+  "baseline_policy": {
+    "appointment_distribution": "match_arrival_pattern",
+    "appointment_punctuality": {
+      "early_summon_max_min": 10,
+      "late_acceptable_min": 10,
+      "late_ok_min": 5
+    },
+    "appointment_share": 0.6,
+    "scheduling_method": "employee_specific"
+  },
+  "customer": null,
+  "engine_version": "c697baa",
+  "golden_sha256": "1894894d6f458c66a92f00eaa9f2403cd373318a9aceb3a6bdc58b14bf2ef3de",
+  "lever_config": {
+    "appointment_smoothing": {
+      "enabled": true,
+      "target_appointment_share": 0.8
+    },
+    "break_scheduling": {
+      "enabled": false
+    },
+    "deflection": {
+      "enabled": false,
+      "rate": 0.0
+    },
+    "matching": {
+      "aging_cap_min": 40,
+      "enabled": true,
+      "weight_preset": "wait_dominant",
+      "weights": null
+    },
+    "prep_in_queue": {
+      "duration_reduction": 0.18,
+      "enabled": true,
+      "incomplete_reduction": 0.5
+    },
+    "running_late": {
+      "enabled": true,
+      "no_show_reduction": 0.2
+    }
+  },
+  "levers_enabled": [
+    "matching",
+    "appointment_smoothing",
+    "prep_in_queue",
+    "running_late"
+  ],
+  "monte_carlo_days": 200,
+  "no_show_rate": 0.15,
+  "notes": "Appointment-heavy shop (60% baseline) with walk-in overflow; tests the model where appointments dominate and the grace window binds hardest.",
+  "preset": "preset-clinic",
+  "punctuality_inputs": {
+    "early_summon_max_min": 10,
+    "late_acceptable_min": 10,
+    "late_ok_min": 5
+  },
+  "random_seed": 42,
+  "report_path": "report.json",
+  "scenario_name": "Community Health Clinic \u2014 Appointment-Led with Walk-Ins",
+  "schema_version": "1.0.0",
+  "variants": [
+    {
+      "key": "none",
+      "label": "Baseline (FIFO, as configured today)",
+      "levers": [],
+      "path": "variants/none.json"
+    },
+    {
+      "key": "appointment_smoothing",
+      "label": "Appointment smoothing",
+      "levers": [
+        "appointment_smoothing"
+      ],
+      "path": "variants/appointment_smoothing.json"
+    },
+    {
+      "key": "matching",
+      "label": "Focus matching & routing",
+      "levers": [
+        "matching"
+      ],
+      "path": "variants/matching.json"
+    },
+    {
+      "key": "prep_in_queue",
+      "label": "Prep-in-queue",
+      "levers": [
+        "prep_in_queue"
+      ],
+      "path": "variants/prep_in_queue.json"
+    },
+    {
+      "key": "running_late",
+      "label": "Running Late",
+      "levers": [
+        "running_late"
+      ],
+      "path": "variants/running_late.json"
+    },
+    {
+      "key": "matching+appointment_smoothing",
+      "label": "Focus matching & routing + Appointment smoothing",
+      "levers": [
+        "matching",
+        "appointment_smoothing"
+      ],
+      "path": "variants/matching+appointment_smoothing.json"
+    },
+    {
+      "key": "matching+appointment_smoothing+prep_in_queue",
+      "label": "Focus matching & routing + Appointment smoothing + Prep-in-queue",
+      "levers": [
+        "matching",
+        "appointment_smoothing",
+        "prep_in_queue"
+      ],
+      "path": "variants/matching+appointment_smoothing+prep_in_queue.json"
+    },
+    {
+      "key": "matching+appointment_smoothing+prep_in_queue+running_late",
+      "label": "Focus matching & routing + Appointment smoothing + Prep-in-queue + Running Late",
+      "levers": [
+        "matching",
+        "appointment_smoothing",
+        "prep_in_queue",
+        "running_late"
+      ],
+      "path": "variants/matching+appointment_smoothing+prep_in_queue+running_late.json"
+    }
+  ],
+  "weights": {
+    "csat": 0.0,
+    "preset": "wait_dominant",
+    "throughput": 0.6,
+    "wait": 0.4
+  }
+}

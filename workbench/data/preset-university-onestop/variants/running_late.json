@@ -1,0 +1,58 @@
+{
+  "key": "running_late",
+  "label": "Running Late",
+  "levers": [
+    "running_late"
+  ],
+  "metrics": {
+    "abandoned_per_day": 17.9,
+    "csat_5pt": 4.0036,
+    "incomplete_time_cost_min_per_day": 0.0,
+    "makespan_min": 23.6601,
+    "mean_csat": 82.3701,
+    "mean_wait_min": 43.0718,
+    "p90_wait_min": 105.6089,
+    "resolved_digitally_per_day": 0.0,
+    "served_per_day": 215.115,
+    "turned_away_per_day": 18.295
+  },
+  "punctuality": {
+    "max_lateness_min": 29.4289,
+    "p50_lateness_min": 0.0,
+    "p90_lateness_min": 0.0002,
+    "pct_acceptable": 0.9937,
+    "pct_on_time": 0.9869
+  },
+  "vs_baseline": {
+    "abandoned": {
+      "ci95_high": 1.1717,
+      "ci95_low": 0.1215,
+      "delta_pct": 0.6466
+    },
+    "mean_csat": {
+      "ci95_high": 0.1031,
+      "ci95_low": 0.0011,
+      "delta_pct": 0.0521
+    },
+    "mean_wait": {
+      "ci95_high": 0.8999,
+      "ci95_low": 0.2968,
+      "delta_pct": 0.5984
+    },
+    "p90_wait": {
+      "ci95_high": 1.2494,
+      "ci95_low": 0.1588,
+      "delta_pct": 0.7041
+    },
+    "served": {
+      "ci95_high": 0.2412,
+      "ci95_low": 0.0615,
+      "delta_pct": 0.1513
+    },
+    "turned_away": {
+      "ci95_high": 1.7363,
+      "ci95_low": -0.194,
+      "delta_pct": 0.7711
+    }
+  }
+}

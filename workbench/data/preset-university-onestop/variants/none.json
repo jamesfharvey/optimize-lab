@@ -1,0 +1,56 @@
+{
+  "key": "none",
+  "label": "Baseline (FIFO, as configured today)",
+  "levers": [],
+  "metrics": {
+    "abandoned_per_day": 17.785,
+    "csat_5pt": 4.0,
+    "incomplete_time_cost_min_per_day": 0.0,
+    "makespan_min": 22.953,
+    "mean_csat": 82.3272,
+    "mean_wait_min": 42.8156,
+    "p90_wait_min": 104.8705,
+    "resolved_digitally_per_day": 0.0,
+    "served_per_day": 214.79,
+    "turned_away_per_day": 18.155
+  },
+  "punctuality": {
+    "max_lateness_min": 29.4289,
+    "p50_lateness_min": 0.0,
+    "p90_lateness_min": 0.0002,
+    "pct_acceptable": 0.9936,
+    "pct_on_time": 0.9868
+  },
+  "vs_baseline": {
+    "abandoned": {
+      "ci95_high": 0.0,
+      "ci95_low": 0.0,
+      "delta_pct": 0.0
+    },
+    "mean_csat": {
+      "ci95_high": 0.0,
+      "ci95_low": 0.0,
+      "delta_pct": 0.0
+    },
+    "mean_wait": {
+      "ci95_high": 0.0,
+      "ci95_low": 0.0,
+      "delta_pct": 0.0
+    },
+    "p90_wait": {
+      "ci95_high": 0.0,
+      "ci95_low": 0.0,
+      "delta_pct": 0.0
+    },
+    "served": {
+      "ci95_high": 0.0,
+      "ci95_low": 0.0,
+      "delta_pct": 0.0
+    },
+    "turned_away": {
+      "ci95_high": 0.0,
+      "ci95_low": 0.0,
+      "delta_pct": 0.0
+    }
+  }
+}

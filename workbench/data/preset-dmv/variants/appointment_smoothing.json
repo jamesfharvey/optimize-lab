@@ -1,0 +1,58 @@
+{
+  "key": "appointment_smoothing",
+  "label": "Appointment smoothing",
+  "levers": [
+    "appointment_smoothing"
+  ],
+  "metrics": {
+    "abandoned_per_day": 16.93,
+    "csat_5pt": 3.9913,
+    "incomplete_time_cost_min_per_day": 0.0,
+    "makespan_min": 3.3031,
+    "mean_csat": 84.1383,
+    "mean_wait_min": 26.3685,
+    "p90_wait_min": 51.6379,
+    "resolved_digitally_per_day": 0.0,
+    "served_per_day": 370.85,
+    "turned_away_per_day": 6.25
+  },
+  "punctuality": {
+    "max_lateness_min": 24.0705,
+    "p50_lateness_min": 0.0,
+    "p90_lateness_min": 0.0,
+    "pct_acceptable": 0.9798,
+    "pct_on_time": 0.9787
+  },
+  "vs_baseline": {
+    "abandoned": {
+      "ci95_high": -3.6166,
+      "ci95_low": -7.2742,
+      "delta_pct": -5.4454
+    },
+    "mean_csat": {
+      "ci95_high": -0.0622,
+      "ci95_low": -0.1542,
+      "delta_pct": -0.1082
+    },
+    "mean_wait": {
+      "ci95_high": -4.753,
+      "ci95_low": -6.9576,
+      "delta_pct": -5.8553
+    },
+    "p90_wait": {
+      "ci95_high": 1.4126,
+      "ci95_low": -0.8252,
+      "delta_pct": 0.2937
+    },
+    "served": {
+      "ci95_high": -0.2236,
+      "ci95_low": -0.4108,
+      "delta_pct": -0.3172
+    },
+    "turned_away": {
+      "ci95_high": 2.4631,
+      "ci95_low": 0.6238,
+      "delta_pct": 1.5435
+    }
+  }
+}

@@ -1,0 +1,168 @@
+/* optimize-lab workbench — viewer over engine output, not a second engine.
+   Palette: warm paper #f6f5f1, panel white, ink #1d1c18, accent teal
+   #0f766e, chart conventions: gray baseline #9ca3af, teal improvement
+   #0d9488, red degradation #dc2626, slate combined #334155.
+   Fonts: Hanken Grotesk / Fraunces when installed; graceful system
+   fallbacks (no CDN, no bundled fonts — zero-dependency rule). */
+
+:root {
+  --paper: #f6f5f1;
+  --panel: #ffffff;
+  --ink: #1d1c18;
+  --muted: #6b6a64;
+  --line: #e4e2da;
+  --accent: #0f766e;
+  --teal: #0d9488;
+  --red: #dc2626;
+  --amber-bg: #fef3c7;
+  --amber-ink: #92400e;
+  --gray: #9ca3af;
+  --slate: #334155;
+  --serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --sans: "Hanken Grotesk", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--sans);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.45;
+  padding-bottom: 90px; /* room for the persistent flags footer */
+}
+h1, h2, h3 { font-family: var(--serif); font-weight: 600; margin: 0 0 .4em; }
+h2 { font-size: 20px; }
+h3 { font-size: 16px; }
+small, .muted { color: var(--muted); }
+code, .mono { font-family: var(--mono); font-size: 13px; }
+
+header {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 14px;
+  padding: 14px 22px 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+header .brand { font-family: var(--serif); font-size: 22px; }
+header .brand span { color: var(--accent); }
+header select {
+  font: inherit; padding: 5px 8px; border: 1px solid var(--line);
+  border-radius: 7px; background: var(--paper);
+}
+.load-btn {
+  border: 1px solid var(--line); border-radius: 7px; padding: 5px 11px;
+  cursor: pointer; background: var(--paper);
+}
+.load-btn input { display: none; }
+#meta-line { flex-basis: 100%; font-size: 13px; color: var(--muted); }
+#meta-line .ok { color: var(--accent); }
+
+#banner .banner {
+  margin: 10px 22px 0; padding: 10px 14px; border-radius: 8px;
+  font-size: 14px;
+}
+.banner.red { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+.banner.amber { background: var(--amber-bg); color: var(--amber-ink);
+  border: 1px solid #fcd34d; }
+
+main { display: flex; gap: 18px; padding: 18px 22px; align-items: flex-start; }
+#lever-panel { flex: 0 0 295px; position: sticky; top: 12px; }
+#content { flex: 1 1 auto; min-width: 0; }
+
+.panel {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 10px; padding: 14px 16px; margin-bottom: 16px;
+}
+
+/* lever panel */
+.lever {
+  display: flex; gap: 10px; padding: 9px 8px; border-radius: 8px;
+  cursor: pointer; align-items: flex-start;
+}
+.lever:hover { background: var(--paper); }
+.lever.disabled { opacity: .45; cursor: not-allowed; }
+.lever .dot {
+  flex: 0 0 16px; height: 16px; margin-top: 2px;
+  border: 2px solid var(--gray); border-radius: 50%;
+}
+.lever.on .dot { background: var(--accent); border-color: var(--accent); }
+.lever .name { font-weight: 600; }
+.lever .desc { font-size: 12.5px; color: var(--muted); }
+.warn-badge {
+  display: inline-block; background: var(--amber-bg); color: var(--amber-ink);
+  border-radius: 5px; padding: 0 5px; font-size: 11px; cursor: help;
+}
+details.advanced { margin-top: 10px; font-size: 13px; }
+details.advanced summary { cursor: pointer; color: var(--muted); }
+details.advanced table { width: 100%; font-size: 12.5px; }
+
+/* scoreboard */
+table.score { width: 100%; border-collapse: collapse; }
+table.score th, table.score td {
+  text-align: right; padding: 5px 8px; border-bottom: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+table.score th:first-child, table.score td:first-child { text-align: left; }
+table.score .good { color: var(--teal); }
+table.score .bad { color: var(--red); }
+table.score .sep td { border-bottom: 2px solid var(--ink); }
+table.score .sub td:first-child { padding-left: 22px; color: var(--muted); }
+.ci { font-size: 11.5px; color: var(--muted); display: block; }
+
+/* tables */
+table.plain { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.plain th, table.plain td {
+  padding: 5px 8px; border-bottom: 1px solid var(--line); text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+table.plain th:first-child, table.plain td:first-child { text-align: left; }
+
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.chart-card { position: relative; }
+.chart-card .dl {
+  position: absolute; top: 10px; right: 12px; font-size: 11.5px;
+  border: 1px solid var(--line); background: var(--paper); border-radius: 6px;
+  padding: 2px 7px; cursor: pointer;
+}
+.analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.flip-note {
+  font-size: 13px; background: var(--paper); border-left: 3px solid var(--accent);
+  padding: 7px 10px; margin-top: 8px; border-radius: 0 6px 6px 0;
+}
+
+/* not-precomputed affordance */
+.not-precomputed {
+  border: 1.5px dashed var(--gray); border-radius: 10px; padding: 22px;
+  text-align: center; background: var(--panel); margin-bottom: 16px;
+}
+.not-precomputed code {
+  display: block; margin: 12px auto 8px; padding: 9px 12px; max-width: 640px;
+  background: var(--paper); border-radius: 7px; text-align: left;
+  overflow-x: auto; white-space: pre;
+}
+button.copy, button.export-btn {
+  font: inherit; font-size: 13px; border: 1px solid var(--line);
+  background: var(--panel); border-radius: 7px; padding: 5px 12px;
+  cursor: pointer;
+}
+button.copy:hover, button.export-btn:hover { border-color: var(--accent);
+  color: var(--accent); }
+
+/* persistent assumptions footer */
+#flags-footer {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 5;
+  background: #fffdf5; border-top: 2px solid #fcd34d;
+  padding: 7px 22px; font-size: 12px; color: var(--amber-ink);
+  max-height: 84px; overflow-y: auto;
+}
+#flags-footer b { font-weight: 700; }
+
+svg text { font-family: var(--sans); }
+
+@media (max-width: 1000px) {
+  main { flex-direction: column; }
+  #lever-panel { position: static; flex-basis: auto; width: 100%; }
+  .charts-grid, .analysis-grid { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,160 @@
+{
+  "_": "matching/smoothing/prep/deflection/running_late values above are the configuration the bundle was RUN with; the workbench displays them read-only and never re-runs weights.",
+  "baseline_policy": {
+    "appointment_distribution": "even",
+    "appointment_punctuality": {
+      "early_summon_max_min": 10,
+      "late_acceptable_min": 15,
+      "late_ok_min": 5
+    },
+    "appointment_share": 0.1,
+    "scheduling_method": "capacity"
+  },
+  "customer": null,
+  "engine_version": "c697baa",
+  "golden_sha256": "d8aadab93c0a0a3514973bd863d457c89d5e38d8cb285538e279e6e236736ae2",
+  "lever_config": {
+    "appointment_smoothing": {
+      "enabled": true,
+      "target_appointment_share": 0.15
+    },
+    "break_scheduling": {
+      "enabled": false
+    },
+    "deflection": {
+      "enabled": true,
+      "rate": 0.02
+    },
+    "matching": {
+      "aging_cap_min": 45,
+      "enabled": true,
+      "weight_preset": "wait_dominant",
+      "weights": null
+    },
+    "prep_in_queue": {
+      "duration_reduction": 0.12,
+      "enabled": true,
+      "incomplete_reduction": 0.5
+    },
+    "running_late": {
+      "enabled": true,
+      "no_show_reduction": 0.15
+    }
+  },
+  "levers_enabled": [
+    "matching",
+    "appointment_smoothing",
+    "prep_in_queue",
+    "deflection",
+    "running_late"
+  ],
+  "monte_carlo_days": 200,
+  "no_show_rate": 0.1,
+  "notes": "Ticket-culture office: mostly drop-in, short transactional services, protected long-duration Road Test. Lower appointment share, morning surge. Recalibrated June 11, 2026: demand raised 320 -> 400/day to restore the oversubscribed-surge regime for demo credibility (baseline wait ~28 min, ~18 abandonments/day). Lever defaults revised June 11, 2026: deflection 2%; smoothing target 15% (baseline booking share stays 0.10 - what the office does today). This closes the v1.2 known limit by shutting the no-show and deflection loss channels: optimized in-office served now exceeds baseline (+1.3%) with ~8/day resolved digitally on top, mean wait -72%.",
+  "preset": "preset-dmv",
+  "punctuality_inputs": {
+    "early_summon_max_min": 10,
+    "late_acceptable_min": 15,
+    "late_ok_min": 5
+  },
+  "random_seed": 42,
+  "report_path": "report.json",
+  "scenario_name": "County DMV \u2014 High-Volume Transactional Office",
+  "schema_version": "1.0.0",
+  "variants": [
+    {
+      "key": "none",
+      "label": "Baseline (FIFO, as configured today)",
+      "levers": [],
+      "path": "variants/none.json"
+    },
+    {
+      "key": "appointment_smoothing",
+      "label": "Appointment smoothing",
+      "levers": [
+        "appointment_smoothing"
+      ],
+      "path": "variants/appointment_smoothing.json"
+    },
+    {
+      "key": "deflection",
+      "label": "Deflection",
+      "levers": [
+        "deflection"
+      ],
+      "path": "variants/deflection.json"
+    },
+    {
+      "key": "matching",
+      "label": "Focus matching & routing",
+      "levers": [
+        "matching"
+      ],
+      "path": "variants/matching.json"
+    },
+    {
+      "key": "prep_in_queue",
+      "label": "Prep-in-queue",
+      "levers": [
+        "prep_in_queue"
+      ],
+      "path": "variants/prep_in_queue.json"
+    },
+    {
+      "key": "running_late",
+      "label": "Running Late",
+      "levers": [
+        "running_late"
+      ],
+      "path": "variants/running_late.json"
+    },
+    {
+      "key": "matching+appointment_smoothing",
+      "label": "Focus matching & routing + Appointment smoothing",
+      "levers": [
+        "matching",
+        "appointment_smoothing"
+      ],
+      "path": "variants/matching+appointment_smoothing.json"
+    },
+    {
+      "key": "matching+appointment_smoothing+prep_in_queue",
+      "label": "Focus matching & routing + Appointment smoothing + Prep-in-queue",
+      "levers": [
+        "matching",
+        "appointment_smoothing",
+        "prep_in_queue"
+      ],
+      "path": "variants/matching+appointment_smoothing+prep_in_queue.json"
+    },
+    {
+      "key": "matching+appointment_smoothing+prep_in_queue+deflection",
+      "label": "Focus matching & routing + Appointment smoothing + Prep-in-queue + Deflection",
+      "levers": [
+        "matching",
+        "appointment_smoothing",
+        "prep_in_queue",
+        "deflection"
+      ],
+      "path": "variants/matching+appointment_smoothing+prep_in_queue+deflection.json"
+    },
+    {
+      "key": "matching+appointment_smoothing+prep_in_queue+deflection+running_late",
+      "label": "Focus matching & routing + Appointment smoothing + Prep-in-queue + Deflection + Running Late",
+      "levers": [
+        "matching",
+        "appointment_smoothing",
+        "prep_in_queue",
+        "deflection",
+        "running_late"
+      ],
+      "path": "variants/matching+appointment_smoothing+prep_in_queue+deflection+running_late.json"
+    }
+  ],
+  "weights": {
+    "csat": 0.0,
+    "preset": "wait_dominant",
+    "throughput": 0.6,
+    "wait": 0.4
+  }
+}

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>optimize-lab workbench</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand">optimize-lab <span>workbench</span></div>
+  <select id="preset-select" aria-label="Scenario"></select>
+  <label class="load-btn">Load report…
+    <input type="file" id="file-input" accept=".json,.js">
+  </label>
+  <div id="meta-line"></div>
+</header>
+
+<div id="banner"></div>
+
+<main>
+  <aside id="lever-panel" class="panel"></aside>
+  <section id="content">
+    <div id="scoreboard"></div>
+    <div id="charts"></div>
+    <div id="analysis"></div>
+    <div id="focus"></div>
+    <div id="export" class="panel"></div>
+  </section>
+</main>
+
+<footer id="flags-footer"></footer>
+
+<!-- The workbench is a viewer over engine output, not a second engine:
+     it renders ResultsReport JSON produced by the Python engine and
+     computes no queue physics in JavaScript. Data loads via script tags
+     so the app works from GitHub Pages AND file:// alike. -->
+<script src="data/index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

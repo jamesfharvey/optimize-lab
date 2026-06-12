@@ -1,0 +1,318 @@
+{
+  "assumption_flags": [
+    {
+      "assumed_value": 0.18,
+      "caveat": "Assumed fraction of service duration removed by pre-arrival intake; validate against real visit anatomy per customer before quoting externally.",
+      "lever": "prep_in_queue.duration_reduction"
+    },
+    {
+      "assumed_value": 0.5,
+      "caveat": "Assumed fraction of would-be incompletes caught by prep (default midpoint of the 40-60% range); validate per customer.",
+      "lever": "prep_in_queue.incomplete_reduction"
+    }
+  ],
+  "attribution": [
+    {
+      "lever": "matching",
+      "share_of_combined_gain": -2.0775
+    },
+    {
+      "lever": "appointment_smoothing",
+      "share_of_combined_gain": 32.8155
+    },
+    {
+      "lever": "prep_in_queue",
+      "share_of_combined_gain": 75.0021
+    },
+    {
+      "lever": "running_late",
+      "share_of_combined_gain": -5.7401
+    }
+  ],
+  "focus_recommendation": [
+    {
+      "employee_id": "E1",
+      "focus_services": [
+        "NV",
+        "FU"
+      ],
+      "qualified_services": [
+        "NV",
+        "FU"
+      ],
+      "rationale": "Focus on NV (1.20x vs team avg 1.10x), FU (1.30x vs team avg 1.20x)."
+    },
+    {
+      "employee_id": "E2",
+      "focus_services": [
+        "FU"
+      ],
+      "qualified_services": [
+        "NV",
+        "FU",
+        "CS"
+      ],
+      "rationale": "Focus on FU (1.40x vs team avg 1.20x); colleagues cover NV (1.00x vs 1.10x), CS (0.90x vs 1.12x) faster on average."
+    },
+    {
+      "employee_id": "E3",
+      "focus_services": [
+        "FU",
+        "CS"
+      ],
+      "qualified_services": [
+        "FU",
+        "VX",
+        "CS"
+      ],
+      "rationale": "Focus on FU (1.20x vs team avg 1.20x), CS (1.20x vs team avg 1.12x); colleagues cover VX (1.10x vs 1.27x) faster on average."
+    },
+    {
+      "employee_id": "E4",
+      "focus_services": [
+        "VX",
+        "LB"
+      ],
+      "qualified_services": [
+        "VX",
+        "LB"
+      ],
+      "rationale": "Focus on VX (1.50x vs team avg 1.27x), LB (1.30x vs team avg 1.30x)."
+    },
+    {
+      "employee_id": "E5",
+      "focus_services": [
+        "LB"
+      ],
+      "qualified_services": [
+        "VX",
+        "LB"
+      ],
+      "rationale": "Focus on LB (1.50x vs team avg 1.30x); colleagues cover VX (1.20x vs 1.27x) faster on average."
+    },
+    {
+      "employee_id": "E6",
+      "focus_services": [
+        "VX"
+      ],
+      "qualified_services": [
+        "VX",
+        "LB",
+        "CS"
+      ],
+      "rationale": "Focus on VX (1.30x vs team avg 1.27x); colleagues cover LB (1.10x vs 1.30x), CS (1.00x vs 1.12x) faster on average."
+    },
+    {
+      "employee_id": "E7",
+      "focus_services": [
+        "CS"
+      ],
+      "qualified_services": [
+        "FU",
+        "CS"
+      ],
+      "rationale": "Focus on CS (1.40x vs team avg 1.12x); colleagues cover FU (0.90x vs 1.20x) faster on average."
+    }
+  ],
+  "guardrail_warnings": [
+    {
+      "lever": "appointment_smoothing",
+      "message": "Solo lever 'appointment_smoothing' degrades appointment p90 lateness vs baseline (12.8 -> 23.4 min). The combined lever set is the guardrail-gated configuration.",
+      "p90_lateness_baseline": 12.7611,
+      "p90_lateness_solo": 23.4287
+    },
+    {
+      "lever": "running_late",
+      "message": "Solo lever 'running_late' degrades appointment p90 lateness vs baseline (12.8 -> 13.8 min). The combined lever set is the guardrail-gated configuration.",
+      "p90_lateness_baseline": 12.7611,
+      "p90_lateness_solo": 13.8234
+    }
+  ],
+  "meta": {
+    "engine_version": "golden",
+    "monte_carlo_days": 200,
+    "random_seed": 42,
+    "scenario_name": "Community Health Clinic \u2014 Appointment-Led with Walk-Ins",
+    "schema_version": "1.0.0"
+  },
+  "metrics": {
+    "abandoned_per_day": {
+      "baseline": 2.76,
+      "ci95_high": -60.8542,
+      "ci95_low": -76.4646,
+      "delta_pct": -68.6594,
+      "optimized": 0.865
+    },
+    "appointment_punctuality": {
+      "baseline": {
+        "max_lateness_min": 206.4285,
+        "p50_lateness_min": 0.0,
+        "p90_lateness_min": 12.7611,
+        "pct_acceptable": 0.8632,
+        "pct_on_time": 0.8279
+      },
+      "optimized": {
+        "max_lateness_min": 142.5715,
+        "p50_lateness_min": 0.0,
+        "p90_lateness_min": 8.2514,
+        "pct_acceptable": 0.8961,
+        "pct_on_time": 0.8645
+      }
+    },
+    "csat_5pt": {
+      "baseline": 4.0,
+      "optimized": 4.0586
+    },
+    "incomplete_time_cost_min_per_day": 0.0,
+    "makespan_min": {
+      "baseline": 15.7127,
+      "ci95_high": -49.1362,
+      "ci95_low": -72.5554,
+      "delta_pct": -60.8458,
+      "optimized": 6.1522
+    },
+    "mean_csat": {
+      "baseline": 85.9002,
+      "ci95_high": 0.8917,
+      "ci95_low": 0.4029,
+      "delta_pct": 0.6473,
+      "optimized": 86.4562
+    },
+    "mean_wait_min": {
+      "baseline": 14.0979,
+      "ci95_high": -55.0044,
+      "ci95_low": -62.9788,
+      "delta_pct": -58.9916,
+      "optimized": 5.7813
+    },
+    "p90_wait_min": {
+      "baseline": 40.5869,
+      "ci95_high": -62.7833,
+      "ci95_low": -74.7652,
+      "delta_pct": -68.7742,
+      "optimized": 12.6736
+    },
+    "resolved_digitally_per_day": 0.0,
+    "served_per_day": {
+      "baseline": 155.34,
+      "ci95_high": 1.5073,
+      "ci95_low": 0.8874,
+      "delta_pct": 1.1974,
+      "optimized": 157.2
+    },
+    "turned_away_per_day": {
+      "baseline": 5.76,
+      "ci95_high": -13.5388,
+      "ci95_low": -21.7043,
+      "delta_pct": -17.6215,
+      "optimized": 4.745
+    }
+  },
+  "per_lever_impact": [
+    {
+      "lever": "matching",
+      "mean_csat_delta_pts": -0.0091,
+      "mean_wait_delta_pct": 1.352,
+      "p90_wait_delta_pct": -5.1727,
+      "served_per_day_delta_pct": -0.0579
+    },
+    {
+      "lever": "appointment_smoothing",
+      "mean_csat_delta_pts": -2.4201,
+      "mean_wait_delta_pct": -21.3554,
+      "p90_wait_delta_pct": -24.6098,
+      "served_per_day_delta_pct": -2.8003
+    },
+    {
+      "lever": "prep_in_queue",
+      "mean_csat_delta_pts": 1.4651,
+      "mean_wait_delta_pct": -48.8092,
+      "p90_wait_delta_pct": -52.5661,
+      "served_per_day_delta_pct": 1.5579
+    },
+    {
+      "lever": "running_late",
+      "mean_csat_delta_pts": -0.1229,
+      "mean_wait_delta_pct": 3.7355,
+      "p90_wait_delta_pct": 4.3872,
+      "served_per_day_delta_pct": 1.7703
+    }
+  ],
+  "waterfall": [
+    {
+      "label": "Baseline (FIFO, as run today)",
+      "levers_active": [],
+      "mean_csat": 85.9002,
+      "mean_wait_min": 14.0979,
+      "p90_wait_min": 40.5869,
+      "served_per_day": 155.34,
+      "step": 0
+    },
+    {
+      "delta_vs_baseline_pct": {
+        "mean_wait_min": 1.352,
+        "served_per_day": -0.0579
+      },
+      "label": "+ Focus matching & routing",
+      "levers_active": [
+        "matching"
+      ],
+      "mean_csat": 85.8911,
+      "mean_wait_min": 14.2885,
+      "p90_wait_min": 38.4875,
+      "served_per_day": 155.25,
+      "step": 1
+    },
+    {
+      "delta_vs_baseline_pct": {
+        "mean_wait_min": -21.0993,
+        "served_per_day": -2.8067
+      },
+      "label": "+ Appointment smoothing",
+      "levers_active": [
+        "matching",
+        "appointment_smoothing"
+      ],
+      "mean_csat": 83.4279,
+      "mean_wait_min": 11.1233,
+      "p90_wait_min": 30.3612,
+      "served_per_day": 150.98,
+      "step": 2
+    },
+    {
+      "delta_vs_baseline_pct": {
+        "mean_wait_min": -61.6981,
+        "served_per_day": -1.4259
+      },
+      "label": "+ Prep-in-queue",
+      "levers_active": [
+        "matching",
+        "appointment_smoothing",
+        "prep_in_queue"
+      ],
+      "mean_csat": 86.634,
+      "mean_wait_min": 5.3997,
+      "p90_wait_min": 11.4605,
+      "served_per_day": 153.125,
+      "step": 3
+    },
+    {
+      "delta_vs_baseline_pct": {
+        "mean_wait_min": -58.9916,
+        "served_per_day": 1.1974
+      },
+      "label": "+ Running Late",
+      "levers_active": [
+        "matching",
+        "appointment_smoothing",
+        "prep_in_queue",
+        "running_late"
+      ],
+      "mean_csat": 86.4562,
+      "mean_wait_min": 5.7813,
+      "p90_wait_min": 12.6736,
+      "served_per_day": 157.2,
+      "step": 4
+    }
+  ]
+}
