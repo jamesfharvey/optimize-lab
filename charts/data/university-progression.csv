@@ -35,18 +35,18 @@ step,column,levers_active,metric,value,increment_vs_prev,delta_vs_baseline
 3,+ Prep ⚠,matching|appointment_smoothing|prep_in_queue,turned away/day,2.815,-7.98,-15.34
 4,+ Deflection ⚠,matching|appointment_smoothing|prep_in_queue|deflection,turned away/day,2.42,-0.395,-15.735
 5,+ Running Late  (= COMBINED),matching|appointment_smoothing|prep_in_queue|deflection|running_late,turned away/day,2.57,0.15,-15.585
-0,Baseline,,predicted CSAT (0-100),71.3605,,
-1,+ Matching,matching,predicted CSAT (0-100),64.7929,-6.5676,-6.5676
-2,+ Smoothing,matching|appointment_smoothing,predicted CSAT (0-100),77.0022,12.2093,5.6417
-3,+ Prep ⚠,matching|appointment_smoothing|prep_in_queue,predicted CSAT (0-100),79.2526,2.2503,7.8921
-4,+ Deflection ⚠,matching|appointment_smoothing|prep_in_queue|deflection,predicted CSAT (0-100),79.5034,0.2509,8.1429
-5,+ Running Late  (= COMBINED),matching|appointment_smoothing|prep_in_queue|deflection|running_late,predicted CSAT (0-100),79.4315,-0.072,8.0709
+0,Baseline,,predicted CSAT (0-100),82.3272,,
+1,+ Matching,matching,predicted CSAT (0-100),82.682,0.3548,0.3548
+2,+ Smoothing,matching|appointment_smoothing,predicted CSAT (0-100),83.193,0.511,0.8658
+3,+ Prep ⚠,matching|appointment_smoothing|prep_in_queue,predicted CSAT (0-100),83.8907,0.6977,1.5635
+4,+ Deflection ⚠,matching|appointment_smoothing|prep_in_queue|deflection,predicted CSAT (0-100),83.9022,0.0115,1.575
+5,+ Running Late  (= COMBINED),matching|appointment_smoothing|prep_in_queue|deflection|running_late,predicted CSAT (0-100),83.8738,-0.0284,1.5466
 0,Baseline,,predicted CSAT (5-pt),4.0,,
-1,+ Matching,matching,predicted CSAT (5-pt),3.637,-0.363,-0.363
-2,+ Smoothing,matching|appointment_smoothing,predicted CSAT (5-pt),4.2804,0.6434,0.2804
-3,+ Prep ⚠,matching|appointment_smoothing|prep_in_queue,predicted CSAT (5-pt),4.3834,0.103,0.3834
-4,+ Deflection ⚠,matching|appointment_smoothing|prep_in_queue|deflection,predicted CSAT (5-pt),4.3946,0.0111,0.3946
-5,+ Running Late  (= COMBINED),matching|appointment_smoothing|prep_in_queue|deflection|running_late,predicted CSAT (5-pt),4.3914,-0.0032,0.3914
+1,+ Matching,matching,predicted CSAT (5-pt),4.03,0.03,0.03
+2,+ Smoothing,matching|appointment_smoothing,predicted CSAT (5-pt),4.0726,0.0426,0.0726
+3,+ Prep ⚠,matching|appointment_smoothing|prep_in_queue,predicted CSAT (5-pt),4.1297,0.0571,0.1297
+4,+ Deflection ⚠,matching|appointment_smoothing|prep_in_queue|deflection,predicted CSAT (5-pt),4.1307,0.0009,0.1307
+5,+ Running Late  (= COMBINED),matching|appointment_smoothing|prep_in_queue|deflection|running_late,predicted CSAT (5-pt),4.1284,-0.0023,0.1284
 0,Baseline,,appt p90 lateness (min),0.0002,,
 1,+ Matching,matching,appt p90 lateness (min),0.0,-0.0002,-0.0002
 2,+ Smoothing,matching|appointment_smoothing,appt p90 lateness (min),5.0231,5.0231,5.0229

@@ -1,5 +1,10 @@
 # charts/ — results presentation layer
 
+> **v1.4 note:** CSAT figures reflect the policy-aware, arrival-aware
+> dispatch-forward check-in quote with promise ranges and asymmetric
+> accuracy (spec v1.4). Operational figures (waits, served, lateness) are
+> unchanged from v1.3 — the quote is informational only.
+
 Read-only over the committed engine: `build_charts.py` re-runs each preset's
 full Monte-Carlo plan and renders the comparison set below. **Paired-run
 method:** every lever column is simulated against the *identical* per-day

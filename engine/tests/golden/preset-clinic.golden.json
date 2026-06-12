@@ -161,7 +161,7 @@
     },
     "csat_5pt": {
       "baseline": 4.0,
-      "optimized": 4.4015
+      "optimized": 4.0586
     },
     "incomplete_time_cost_min_per_day": 0.0,
     "makespan_min": {
@@ -172,11 +172,11 @@
       "optimized": 6.1522
     },
     "mean_csat": {
-      "baseline": 77.0919,
-      "ci95_high": 9.0127,
-      "ci95_low": 8.2118,
-      "delta_pct": 8.6123,
-      "optimized": 83.7313
+      "baseline": 85.9002,
+      "ci95_high": 0.8917,
+      "ci95_low": 0.4029,
+      "delta_pct": 0.6473,
+      "optimized": 86.4562
     },
     "mean_wait_min": {
       "baseline": 14.0979,
@@ -211,28 +211,28 @@
   "per_lever_impact": [
     {
       "lever": "matching",
-      "mean_csat_delta_pts": -0.0789,
+      "mean_csat_delta_pts": -0.0091,
       "mean_wait_delta_pct": 1.352,
       "p90_wait_delta_pct": -5.1727,
       "served_per_day_delta_pct": -0.0579
     },
     {
       "lever": "appointment_smoothing",
-      "mean_csat_delta_pts": 2.7229,
+      "mean_csat_delta_pts": -2.4201,
       "mean_wait_delta_pct": -21.3554,
       "p90_wait_delta_pct": -24.6098,
       "served_per_day_delta_pct": -2.8003
     },
     {
       "lever": "prep_in_queue",
-      "mean_csat_delta_pts": 4.1242,
+      "mean_csat_delta_pts": 1.4651,
       "mean_wait_delta_pct": -48.8092,
       "p90_wait_delta_pct": -52.5661,
       "served_per_day_delta_pct": 1.5579
     },
     {
       "lever": "running_late",
-      "mean_csat_delta_pts": -0.2621,
+      "mean_csat_delta_pts": -0.1229,
       "mean_wait_delta_pct": 3.7355,
       "p90_wait_delta_pct": 4.3872,
       "served_per_day_delta_pct": 1.7703
@@ -242,7 +242,7 @@
     {
       "label": "Baseline (FIFO, as run today)",
       "levers_active": [],
-      "mean_csat": 77.0919,
+      "mean_csat": 85.9002,
       "mean_wait_min": 14.0979,
       "p90_wait_min": 40.5869,
       "served_per_day": 155.34,
@@ -257,7 +257,7 @@
       "levers_active": [
         "matching"
       ],
-      "mean_csat": 77.0131,
+      "mean_csat": 85.8911,
       "mean_wait_min": 14.2885,
       "p90_wait_min": 38.4875,
       "served_per_day": 155.25,
@@ -273,7 +273,7 @@
         "matching",
         "appointment_smoothing"
       ],
-      "mean_csat": 79.8262,
+      "mean_csat": 83.4279,
       "mean_wait_min": 11.1233,
       "p90_wait_min": 30.3612,
       "served_per_day": 150.98,
@@ -290,7 +290,7 @@
         "appointment_smoothing",
         "prep_in_queue"
       ],
-      "mean_csat": 83.9318,
+      "mean_csat": 86.634,
       "mean_wait_min": 5.3997,
       "p90_wait_min": 11.4605,
       "served_per_day": 153.125,
@@ -308,7 +308,7 @@
         "prep_in_queue",
         "running_late"
       ],
-      "mean_csat": 83.7313,
+      "mean_csat": 86.4562,
       "mean_wait_min": 5.7813,
       "p90_wait_min": 12.6736,
       "served_per_day": 157.2,
